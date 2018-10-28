@@ -21,9 +21,10 @@ func main() {
 	}
 	/* create an S3 session */
 	s3:= s3Client.SetS3Session(s3Config,location)
+	// fmt.Println(s3.Endpoint,s3.AccessKeyID,s3.SecretKey,s3.SSL)
 	s3client, err := minio.New(s3.Endpoint, s3.AccessKeyID, s3.SecretKey, s3.SSL)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("Create Session: ", err)
 	}
 	buckets, err := s3client.ListBuckets()
 	if err != nil {

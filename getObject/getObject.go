@@ -7,7 +7,6 @@ import (
 	"github.com/minio/minio-go"
 	"github.com/s3Client/lib"
 	"log"
-	"net/http"
 	"time"
 )
 
@@ -51,11 +50,12 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	/* set transport option */
+	/* set transport option
 	tr := &http.Transport{
 		DisableCompression: true,
 	}
-	s3client.SetCustomTransport(tr)
+	*/
+	// s3client.SetCustomTransport(tr)
 	// s3client.TraceOn(os.Stdout)
 	start := time.Now()
 	// object reader. It implements io.Reader, io.Seeker, io.ReaderAt and io.Closer interfaces.
@@ -65,14 +65,26 @@ func main() {
 		log.Fatalln(err)
 	}
 	defer object.Close()
-	/* get the size of the object */
+	/* get the size of the object
 	s,_:=object.Stat()
 	log.Printf("Get Metadata:  %s",time.Since(start))
 	if err != nil {
 		log.Fatalln(err)
 	}
+	*/
 	/* Retrieve the object*/
-	buffer:= make([]byte,s.Size )
-	n,_ := object.Read(buffer)
-	log.Printf("Total Duration:  %s  size: %d",time.Since(start),n)
+	buffer:= make([]byte,16384 )
+	var (
+		n int
+		size int
+	)
+	for {
+		n, _ = object.Read(buffer)
+		size += n
+		if n == 0 {
+			break
+		}
+		//log.Println(n)
+	}
+	log.Printf("Total Duration:  %s  size: %d",time.Since(start),size)
 }

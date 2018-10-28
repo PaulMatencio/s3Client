@@ -2,16 +2,17 @@
 package main
 
 import (
-	"flag"
-	"runtime"
-	"strings"
-	"time"
-
 	"errors"
+	"flag"
 	"github.com/minio/minio-go"
 	"github.com/s3Client/lib"
 	"log"
 	"net/http"
+	"os"
+	"strings"
+	"time"
+
+	// "time"
 )
 
 func main() {
@@ -20,25 +21,25 @@ func main() {
 		location   string /* S3 location */
 		filename   string /* output file */
 		objectName string /* Object name */
-		delimiter  string
+
 	)
 
 	flag.StringVar(&bucketName, "b", "", "-b bucketName")
 	flag.StringVar(&location, "s", "site1", "-s locationName")
 	flag.StringVar(&objectName, "o", "", "-o objectName")
 	flag.StringVar(&filename, "fn", "", "-fn filename")
-	flag.StringVar(&delimiter, "delimiter", "/", "-delimiter /")
+
 	flag.Parse()
-	if len(bucketName) == 0 || len(objectName) == 0 {
+	if len(bucketName) == 0 || len(filename) == 0 {
 		flag.Usage()
-		log.Fatalln(errors.New("bucketName or objectName cannot be empty"))
+		log.Fatalln(errors.New("bucketName or filename cannot be empty"))
 	}
 
-	/* parse the path of the filename and Keep only the last path to form the object name */
-	if filename == "" {
-		sl := strings.Split(objectName, delimiter)
-		filename = sl[len(sl)-1]
+	if len(objectName) == 0 {
+		sl := strings.Split(filename, "/")
+		objectName = sl[len(sl)-1]
 	}
+
 
 	/* get Config */
 	s3Config, err := s3Client.GetConfig("config.json")
@@ -57,11 +58,13 @@ func main() {
 	tr := &http.Transport{
 		DisableCompression: true,
 	}
-	runtime.GOMAXPROCS(4)
+
 	s3client.SetCustomTransport(tr)
-	// s3client.TraceOn(os.Stdout)
+	s3client.TraceOn(os.Stdout)
+	opts := minio.PutObjectOptions{}
+	opts.ContentType="application/octet-stream"
 	start := time.Now()
-	if err := s3client.FGetObject(bucketName, objectName, filename, minio.GetObjectOptions{}); err != nil {
+	if  _,err := s3client.FPutObject(bucketName, objectName, filename,opts); err != nil {
 		log.Fatalln(err)
 	}
 	log.Printf("Duration:  %s", time.Since(start))

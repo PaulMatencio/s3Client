@@ -72,10 +72,8 @@ func main() {
 			fmt.Println(objInfo.Err)
 			return
 		}
-
 		metadata, _ := json.Marshal(objInfo.Metadata)
 		fmt.Printf("key : %s  Content Type: %s Last Modified %s Size: %d  Metadata %s\n",objInfo.Key, objInfo.ContentType,  objInfo.LastModified,  objInfo.Size,metadata)
 	}
-
 	return
 }

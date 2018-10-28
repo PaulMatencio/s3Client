@@ -2,8 +2,8 @@
 package main
 
 import (
+	"errors"
 	"flag"
-	"fmt"
 	"github.com/minio/minio-go"
 	"github.com/s3Client/lib"
 	"log"
@@ -33,16 +33,17 @@ func main() {
 	var (
 		filename string
 		objectName string
+		separator string
 	)
 
 	flag.StringVar(&bucketName,"b","","-b bucketName")
 	flag.StringVar(&location,"s","site1","-s locationName")
-	flag.StringVar(&filename,"o","","-on objectName")
+	flag.StringVar(&filename,"o","","-o objectName")
+	flag.StringVar(&separator,"separator","/","-sep  <aSeparator>")
 	flag.Parse()
 	if len(bucketName) == 0  ||  len(filename) == 0 {
-		fmt.Println("bucketName or objectName cannot be empty")
 		flag.Usage()
-		os.Exit(100)
+		log.Fatalln(errors.New("bucketName or filename cannot be empty"))
 	}
 
 	/* get Config */
@@ -65,24 +66,27 @@ func main() {
 	}
 
 	defer object.Close()
+
 	objectStat, err := object.Stat()
 
 	if err != nil {
 		log.Fatalln(err)
 	}
-	sl := strings.Split(filename,"/")
+
+	sl := strings.Split(filename,separator)
 	objectName =  sl[len(sl)-1]
 
 
 	opts:= minio.PutObjectOptions{}
-
 	opts.ContentType = "application/octet-stream"
 	opts.StorageClass= "STANDARD"
 
-	usermd := make(map[string]string)
-	usermd["lastName"] = "Matencio"
-	usermd["fisrtName"]= "Paul"
-	usermd["address"] = "Regentesselaan 14"
+
+	usermd := map[string]string {
+		"lastName": "Matencio",
+		"firstname": "Paul",
+		"address": "Regentesselaan 14",
+	}
 	opts.UserMetadata = usermd
 
 	/* */
