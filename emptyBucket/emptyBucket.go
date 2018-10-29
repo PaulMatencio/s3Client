@@ -95,15 +95,19 @@ func main() {
 				messages <- Response{filename, err}
 			}(filename)
 		}
+	if (N == 0 ) {
+		log.Printf("Bucket %s was empty",bucketName)
+		return
+	}
+	/*  wait  until all remove are done  */
+	for {
 
-			for {
-
-				select {
+		select {
 				case /* r:= */ <-messages:
 					{
 						// fmt.Println(r.Filename,T,N)
 						if T == N {
-							fmt.Printf("Remove %d objects in %s\n", N, time.Since(start0))
+							log.Printf("Remove %d objects from &s in %s\n", N, bucketName,time.Since(start0))
 							return
 						}
 						T++
@@ -111,6 +115,6 @@ func main() {
 				case <-time.After(50 * time.Millisecond):
 					fmt.Printf("w")
 				}
-			}
+		}
 
 }

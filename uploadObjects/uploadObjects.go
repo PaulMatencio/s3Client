@@ -55,6 +55,11 @@ func main() {
 			filenames= append(filenames, f.Name())
 		}
 	}
+	N:= len(filenames)
+	if ( N == 0) {
+		log.Printf("Directory s% is empty",directory)
+		return
+	}
 
 	/* get the Config */
 
@@ -77,10 +82,11 @@ func main() {
 	/* create a goroutine chanel */
 	messages := make(chan Response)
 	runtime.GOMAXPROCS(4)
-	N:= len(filenames)
+
 	T:=1
 	/* */
 	// s3client.TraceOn(os.Stdout)
+
 	start0 := time.Now()
 	for  obj:=0; obj < N; obj++ {
 		start = time.Now()
@@ -116,6 +122,7 @@ func main() {
 		totalSize int64 = 0
 		totalDuration time.Duration = 0
 	)
+
 	for {
 		select {
 		case   r:=  <-messages:
@@ -125,7 +132,7 @@ func main() {
 				if T ==  N  {
 					elapsedTm := time.Since(start0)
 					MBps :=  1000* float64(totalSize)/float64(elapsedTm)
-					fmt.Printf("Uplooad %d objects[ Total size (byte): %d - MBps: %0.4f] in Total Duration:%s/Total Elapsed:%s\n",N, totalSize, MBps, totalDuration, elapsedTm)
+					log.Printf("Uplooad %d objects[ Total size (byte): %d - MBps: %0.4f] in Total Duration:%s/Total Elapsed:%s\n",N, totalSize, MBps, totalDuration, elapsedTm)
 					return
 			     }
 				T++
