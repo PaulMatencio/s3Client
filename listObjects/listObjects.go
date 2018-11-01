@@ -8,6 +8,7 @@ import (
 	"github.com/s3Client/lib"
 	"log"
 	"errors"
+	"time"
 )
 
 /*
@@ -67,13 +68,18 @@ func main() {
 	defer close(doneCh)
 
 	// List all objects from a bucket-name with a matching prefix.
+	start:= time.Now()
+	n:= 0
 	for objInfo := range s3client.ListObjects(bucketName, prefix, true, doneCh) {
 		if objInfo.Err != nil {
 			fmt.Println(objInfo.Err)
 			return
 		}
+		n++
 		metadata, _ := json.Marshal(objInfo.Metadata)
 		fmt.Printf("key : %s  Content Type: %s Last Modified %s Size: %d  Metadata %s\n",objInfo.Key, objInfo.ContentType,  objInfo.LastModified,  objInfo.Size,metadata)
 	}
+
+	fmt.Printf("Duration:%s  Number of entries: %d\n" ,time.Since(start),n)
 	return
 }

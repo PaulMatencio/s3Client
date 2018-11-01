@@ -8,6 +8,7 @@ import (
 	"github.com/s3Client/lib"
 	"log"
 	"errors"
+	"time"
 )
 
 func main() {
@@ -44,7 +45,7 @@ func main() {
 	}
 
 	// List 'N' number of objects from a bucket-name with a matching prefix.
-
+	start := time.Now()
 	listObjectsN := func(bucket, prefix string, recursive bool, N int) (objsInfo []minio.ObjectInfo, err error) {
 		// Create a done channel to control 'ListObjects' go routine.
 		doneCh := make(chan struct{}, 1)
@@ -80,4 +81,5 @@ func main() {
 		object := objsInfo[r]
 		fmt.Printf("Name:%s Size:%d  ContentType:%s\n  Metadata %s\n" ,object.Key,object.Size,object.ContentType,object.Metadata)
 	}
+	fmt.Printf("Duration:%s . Number of images %d\n",time.Since(start),len(objsInfo))
 }
