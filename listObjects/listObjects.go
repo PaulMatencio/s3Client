@@ -8,34 +8,19 @@ import (
 	"github.com/s3Client/lib"
 	"log"
 	"errors"
+	"os"
 	"time"
 )
 
-/*
-var (
-	site            s3Client.Host
-	endpoint        string
-	accessKeyID     string
-	secretAccessKey string
-	ssl             bool
-)
 
-func setS3(s3Config s3Client.Config,location string) {
-	site  = s3Client.StructToMap(&s3Config.Hosts)[location]
-	endpoint = site.GetUrl()
-	accessKeyID = site.GetAccesKey()
-	secretAccessKey = site.GetSecretKey()
-	ssl = site.GetSecure()
-}
-
-*/
 func main() {
 
 	var (
-		bucketName string
-		location string
-		prefix string
-		limit int
+		bucketName 	string
+		location 	string
+		prefix		string
+		limit 		int
+		trace		bool
 	)
 
 	/* check input parameters */
@@ -43,6 +28,7 @@ func main() {
 	flag.StringVar(&location,"s","site1","-s locationName")
 	flag.StringVar(&prefix,"prefix","","-prefix prefixName")
 	flag.IntVar(&limit,"limit",100,"-limit number")
+	flag.BoolVar(&trace,"t",false,"-t ")
 	flag.Parse()
 	if len(bucketName) == 0  {
 		flag.Usage()
@@ -54,11 +40,16 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+
 	/* create an S3 session */
 	s3:= s3Client.SetS3Session(s3Config,location)
 	s3client, err := minio.New(s3.Endpoint, s3.AccessKeyID, s3.SecretKey,s3.SSL)
 	if err != nil {
 		log.Fatalln(err)
+	}
+
+	if trace  {
+		s3client.TraceOn(os.Stdout)
 	}
 
 	// Create a done channel to control 'ListObjects' go routine.
@@ -79,7 +70,6 @@ func main() {
 		metadata, _ := json.Marshal(objInfo.Metadata)
 		fmt.Printf("key : %s  Content Type: %s Last Modified %s Size: %d  Metadata %s\n",objInfo.Key, objInfo.ContentType,  objInfo.LastModified,  objInfo.Size,metadata)
 	}
-
-	fmt.Printf("Duration:%s  Number of entries: %d\n" ,time.Since(start),n)
+	fmt.Printf("Listing %d objects in %s\n" ,n,time.Since(start))
 	return
 }

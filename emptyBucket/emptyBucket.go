@@ -107,7 +107,7 @@ func main() {
 					{
 						// fmt.Println(r.Filename,T,N)
 						if T == N {
-							log.Printf("Remove %d objects from &s in %s\n", N, bucketName,time.Since(start0))
+							log.Printf("Remove %d objects from %s in %s\n", N, bucketName,time.Since(start0))
 							return
 						}
 						T++

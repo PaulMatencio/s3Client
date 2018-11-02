@@ -81,5 +81,5 @@ func main() {
 		object := objsInfo[r]
 		fmt.Printf("Name:%s Size:%d  ContentType:%s\n  Metadata %s\n" ,object.Key,object.Size,object.ContentType,object.Metadata)
 	}
-	fmt.Printf("Duration:%s . Number of images %d\n",time.Since(start),len(objsInfo))
+	fmt.Printf("Listing  %d objects in %s\n ",len(objsInfo),time.Since(start))
 }

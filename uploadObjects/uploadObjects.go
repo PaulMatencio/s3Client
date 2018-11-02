@@ -58,8 +58,8 @@ func main() {
 	flag.StringVar(&bucketName, "b", "", "-b bucketName")
 	flag.StringVar(&location, "s", "site1", "-s locationName")
 	flag.StringVar(&directory, "d", "", "-d directory")
-	flag.StringVar(&prefix, "prefix", "images", "-prefix aSring  => EX: images")
-	flag.StringVar(&ftype,"ftype","tiff","-ftype aString  => EX: tiff")
+	flag.StringVar(&prefix, "prefix", "", "-prefix aSring  => EX: pxi")
+	flag.StringVar(&ftype,"ftype","","-ftype aString  => EX: tiff")
 	flag.BoolVar(&help,"help",false,"-help")
 
 	flag.Parse()
@@ -67,6 +67,7 @@ func main() {
 		flag.Usage()
 		log.Fatalln(errors.New("bucketName or objectName cannot be empty"))
 	}
+
 
 	/* read the directory */
 	files, err := ioutil.ReadDir(directory)
@@ -77,37 +78,40 @@ func main() {
 	/* looking for file names to upload*/
 	//filenames := []string{}
 	filenames := []Files{}
-	prefix += "/"
-	if ftype != "*" {
-		prefix += ftype + "/"
+	if len(prefix) > 0 {
+		prefix += "/"
 	}
 
+	if len(ftype) > 0  {
+		prefix += ftype + "/"
+	}
+	log.Printf("Files will be upload with a prefix of %s\n",prefix)
+
 	for _, f := range files {
-		if !f.IsDir() {
+		if !f.IsDir() { // skip directory
 			name := f.Name()
-			if ftype != "*" {
+			if len(ftype) > 0 {
+				/*
+				   Specific use case upload all files with a filetype  ftype and filetype = md
+				   this is for uploading moses and Pxi objects to S3
+				*/
 				ft := strings.Split(name, ".")
 				if len(ft) > 1 && ft[len(ft)-1] == ftype {
-
 					filename := Files{Filename: name,Metadata:ft[0]+".md"}
 					filenames = append(filenames,filename)
 				}
 			} else  {
-				/* todo */
-				return
+				/* upload all files in the directory  */
+				filenames = append(filenames,Files{Filename:name,Metadata:""})
 			}
 		}
 	}
 
-	/* looking for user metadata to upload */
-
-	/*       to be done                    */
-
-
 
 	N:= len(filenames)
+	log.Printf("%d files will be uploaded from %s directory\n",N,directory)
 	if ( N == 0) {
-		log.Printf("Directory s% is empty",directory)
+		log.Printf("It seems that there is nothing to upload. Check your input parametres. Don't forget to quote the -ftype\n")
 		return
 	}
 
@@ -124,6 +128,12 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+    /* exit if the bucket does not exist */
+	if exist,err := s3client.BucketExists(bucketName); exist == false || err != nil {
+		log.Printf("Bucket %s does not exist or something went wrong: %v \n",bucketName,err)
+		os.Exit(100)
+	}
+
 	opts := minio.PutObjectOptions{}
 	opts.ContentType = "application/octet-stream"
 	opts.StorageClass = "STANDARD"
@@ -138,6 +148,7 @@ func main() {
 	// s3client.TraceOn(os.Stdout)
 
 	start0 := time.Now()
+
 	for  obj:=0; obj < N; obj++ {
 		start = time.Now()
 		request := Request{
@@ -146,6 +157,7 @@ func main() {
 			Metaname:filenames[obj].Metadata,
 			Meta : nil,
 		}
+
 		var n int64 = 0;
 		filename :=  filenames[obj].Filename
 		if file,err  := os.Open(filename); err == nil {
@@ -154,12 +166,14 @@ func main() {
 			defer file.Close()
 		}
 
-		metadata := filenames[obj].Metadata
-		if meta,err :=  os.Open(metadata);err == nil {
-			request.Metaname = metadata
-			request.Meta = meta
-			defer meta.Close()
+		if metadata := filenames[obj].Metadata;len(metadata)>0 {
+			if meta, err := os.Open(metadata); err == nil {
+				request.Metaname = metadata
+				request.Meta = meta
+				defer meta.Close()
+			}
 		}
+
 		if request.File != nil {
 			go func(Request) {
 				var (
@@ -167,37 +181,40 @@ func main() {
 				 start time.Time
 				 filename string
 				)
-				if  request.File != nil {
-					file:= request.File
-					fileStat, _ := file.Stat()
-					size   = fileStat.Size()
+				/*
+				file:= request.File
+				fileStat, err := file.Stat()
+				*/
+				file:= request.File
+				filename = request.Filename
+				if fileStat,err := file.Stat(); err == nil {
 					start  = time.Now()
-					filename = request.Filename
+					size   = fileStat.Size()
 					objectName := prefix + filename
 
 					/* add user meata data here
-					   Read <file>.md into a byte array
-					   S3 user metadata should be a map[string]string
+					   Read same filename  with ftype md  into a byte array
+					   S3 user metadata must have  a format of map[string]string
 					*/
 					opts := minio.PutObjectOptions{}
-					s,err := request.Meta.Stat()
-					if err == nil {
-						// metadata exists
-						n := s.Size()
-						b := make([]byte, n)
-						var usermeta map[string]string
-						if request.Meta != nil {
-							request.Meta.Read(b)
-							usermeta["usermd"] = user.Encode64(b)
-							opts.UserMetadata = usermeta
+					// user meta data
+					if len(request.Metaname) > 0 {
+						if s, err := request.Meta.Stat();err == nil {
+							// metadata exists
+							n := s.Size()
+							b := make([]byte, n)
+							var usermeta map[string]string
+							if request.Meta != nil {
+								request.Meta.Read(b)
+								usermeta["usermd"] = user.Encode64(b)
+								opts.UserMetadata = usermeta
+							}
+
+							opts.ContentType = "image/" + ftype
 						}
-
-						// opts.ContentType = "application/octet-stream"
-						opts.StorageClass = "STANDARD"
-
-						// log.Println(usermeta)
-						opts.ContentType = "image/" + ftype
 					}
+					// System metadata
+					opts.StorageClass = "STANDARD"
 					n, err = s3client.PutObject(bucketName, objectName, file,
 						size, opts)
 					if err != nil {
