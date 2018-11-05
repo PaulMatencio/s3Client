@@ -7,7 +7,9 @@ import (
 	"github.com/minio/minio-go"
 	"github.com/s3Client/lib"
 	"log"
+	"net/http"
 	"time"
+	"user/files/lib"
 )
 
 func main() {
@@ -15,16 +17,16 @@ func main() {
 		bucketName 		string              /* Bucket name  */
 		location 		string              /* S3 location */
 		objectName 		string              /* Object name */
+		filename        string              /* file name  */
 		trace			bool
-		bufsize			int
+
 	)
 
 	flag.StringVar(&bucketName,"b","","-b bucketName")
 	flag.StringVar(&location,"s","site1","-s locationName")
 	flag.StringVar(&objectName,"o","","-o objectName")
 	flag.BoolVar(&trace,"trace",false,"-trace ")
-	flag.IntVar(&bufsize,"size",65536,"-size of the buffer")
-	// flag.StringVar(&filename,"fn","","-fn fileName")
+	flag.StringVar(&filename,"fn","","-fn fileName")
 
 	flag.Parse()
 	if len(bucketName) == 0  || len(objectName) == 0 {
@@ -32,54 +34,32 @@ func main() {
 		log.Fatalln(errors.New("bucketName or objectName cannot be empty"))
 	}
 
-	/* parse the path of the filename and Keep only the last path to form the object name
-	if filename == "" {
-		sl := strings.Split(objectName,delimiter)
-		filename = sl[len(sl)-1]
-	}
-	*/
-
-
 	s3Client.TRACE = trace
-
-	s3Config,err := s3Client.GetConfig("config.json")
+	s3Config,err := s3Client.GetConfig("config.json")  // get S3 Config
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	s3Login := s3Client.LoginS3(s3Config,location)
-	minioc := s3Login.GetS3Client()  // get minio s3Clie
-
-	/* set transport option
+	minioc := s3Login.GetS3Client()                            // get minio s3Client after the login  to  set transport option
 	tr := &http.Transport{
 		DisableCompression: true,
 	}
+	minioc.SetCustomTransport(tr)
 
-	s3client.SetCustomTransport(tr)
-	*/
 
 	start := time.Now()
+	r := s3Client.S3Request{}
+	options := &minio.GetObjectOptions{}
+	// options.SetRange(0,10)
+	r.S3BuildGetRequest(&s3Login,  bucketName,  objectName,  options)
+	buf,err := s3Client.GetObject(r)
 
-	// object reader. It implements io.Reader, io.Seeker, io.ReaderAt and io.Closer interfaces.
-	//minio.GetObjectOptions.SetRange(0,2000)
-	object, err := minioc.GetObject(bucketName, objectName, minio.GetObjectOptions{})
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("Get Key %s error %v",objectName,err)
 	}
-	defer object.Close()
-
-	/* Retrieve the object*/
-	buffer:= make([]byte,bufsize )
-	var (
-		n int
-		size int
-	)
-	for {
-		n, _ = object.Read(buffer)
-		size += n
-		if n == 0 {
-			break
-		}
+	if len(filename) > 0 {
+		files.WriteFile(filename,buf.Bytes(),0644)
 	}
-	log.Printf("Total Duration:  %s  size: %d",time.Since(start),size)
+	log.Printf("Total Duration:  %s  buffer size: %d ",time.Since(start),buf.Len())
 }
