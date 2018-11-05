@@ -2,12 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
-	"github.com/minio/minio-go"
 	"github.com/s3Client/lib"
 	"log"
-	"errors"
 	"os"
 	"time"
 )
@@ -28,7 +27,7 @@ func main() {
 	flag.StringVar(&location,"s","site1","-s locationName")
 	flag.StringVar(&prefix,"prefix","","-prefix prefixName")
 	flag.IntVar(&limit,"limit",100,"-limit number")
-	flag.BoolVar(&trace,"t",false,"-t ")
+	flag.BoolVar(&trace,"trace",false,"-trace ")
 	flag.Parse()
 	if len(bucketName) == 0  {
 		flag.Usage()
@@ -41,15 +40,10 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	/* create an S3 session */
-	s3:= s3Client.SetS3Session(s3Config,location)
-	s3client, err := minio.New(s3.Endpoint, s3.AccessKeyID, s3.SecretKey,s3.SSL)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
+	s3Login := s3Client.LoginS3(s3Config,location)
+	minioc := s3Login.GetS3Client()  // get minio s3Client
 	if trace  {
-		s3client.TraceOn(os.Stdout)
+		minioc.TraceOn(os.Stdout)
 	}
 
 	// Create a done channel to control 'ListObjects' go routine.
@@ -61,7 +55,7 @@ func main() {
 	// List all objects from a bucket-name with a matching prefix.
 	start:= time.Now()
 	n:= 0
-	for objInfo := range s3client.ListObjects(bucketName, prefix, true, doneCh) {
+	for objInfo := range minioc.ListObjects(bucketName, prefix, true, doneCh) {
 		if objInfo.Err != nil {
 			fmt.Println(objInfo.Err)
 			return

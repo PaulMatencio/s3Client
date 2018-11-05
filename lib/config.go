@@ -1,9 +1,9 @@
-
 package s3Client
 
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"os/user"
 	"path"
@@ -11,52 +11,11 @@ import (
 	"strings"
 )
 
-/* sample  json config
 
-{
-	"version": "9",
-	"hosts": {
-		"gcs": {
-			"url": "storage.googleapis.com",
-			"accessKey": "YOUR-ACCESS-KEY-HERE",
-			"secretKey": "YOUR-SECRET-KEY-HERE",
-			"api": "S3v2",
-			"ssl: true
-		},
-		"local": {
-			"url": "localhost:9000",
-			"accessKey": "",
-			"secretKey": "",
-			"api": "S3v4",
-			"ssl": true
-		},
-		"play": {
-			"url": "play.minio.io:9000",
-			"accessKey": "Q3AM3UQ867SPQQA43P2F",
-			"secretKey": "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG",
-			"api": "S3v4",
-			"ssl": true
-		},
-		"s3": {
-			"url": "s3.amazonaws.com",
-			"accessKey": "YOUR-ACCESS-KEY-HERE",
-			"secretKey": "YOUR-SECRET-KEY-HERE",
-			"api": "S3v4",
-			"ssl": true
-		},
-		"site1": {
-			"url": "10.12.201.11",
-			"accessKey": "UIUQR6RMKIX5R2E4FR3M",
-			"secretKey": "mjkBoi8imZumGNzkn3rCSDRmZBaAdKSRQhOkqjxE",
-			"api": "s3v4",
-            "ssl": false
-		}
-	}
-}
-
-
-*/
-
+var (
+	TRACE bool
+	TR = &http.Transport{ DisableCompression: true,}
+)
 
 type Config struct {
 	Version string `json:"version"`
@@ -127,8 +86,6 @@ func StructToMap( i interface{}) map[string]Host {
 	}
 	return m
 }
-
-
 
 func (c Config) GetVersion() string {
 	return c.Version

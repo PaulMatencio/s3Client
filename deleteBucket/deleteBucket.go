@@ -2,12 +2,10 @@
 package main
 
 import (
+	"errors"
 	"flag"
-	"fmt"
-	"github.com/minio/minio-go"
 	"github.com/s3Client/lib"
 	"log"
-	"errors"
 )
 
 var (
@@ -35,21 +33,18 @@ func main() {
 		log.Fatalln(errors.New("Bucket is missing"))
 	}
 
-	/* get Config */
+	/* get s3 Config */
 	s3Config,err := s3Client.GetConfig("config.json")
 	if err != nil {
 		log.Fatalln(err)
 	}
-	/* create an S3 session */
-	s3:= s3Client.SetS3Session(s3Config,location)
-	s3client, err := minio.New(s3.Endpoint, s3.AccessKeyID, s3.SecretKey, s3.SSL)
-	if err != nil {
-		log.Fatalln(err)
-	}
 
-	err = s3client.RemoveBucket(bucketName)
-	if err != nil {
-		fmt.Println(err)
+	/* login to s3 */
+	s3Login := s3Client.LoginS3(s3Config,location)
+	minioc := s3Login.GetS3Client()  			      	// get s3Client
+
+	if err = minioc.RemoveBucket(bucketName);err != nil {
+		log.Println(err)
 		return
 	}
 

@@ -11,16 +11,16 @@ import (
 	"github.com/minio/minio-go"
 	"github.com/s3Client/lib"
 	"log"
-	"net/http"
 )
 
 func main() {
 	var (
-		bucketName string /* Bucket name  */
-		location   string /* S3 location */
-		filename   string /* output file */
-		objectName string /* Object name */
-		delimiter  string
+		bucketName 	string /* Bucket name  */
+		location   	string /* S3 location */
+		filename   	string /* output file */
+		objectName 	string /* Object name */
+		delimiter  	string
+		trace		bool
 	)
 
 	flag.StringVar(&bucketName, "b", "", "-b bucketName")
@@ -28,14 +28,18 @@ func main() {
 	flag.StringVar(&objectName, "o", "", "-o objectName")
 	flag.StringVar(&filename, "fn", "", "-fn filename")
 	flag.StringVar(&delimiter, "delimiter", "/", "-delimiter /")
+	flag.BoolVar(&trace,"trace",false,"-trace ")
 	flag.Parse()
+
 	if len(bucketName) == 0 || len(objectName) == 0 {
 		flag.Usage()
 		log.Fatalln(errors.New("bucketName or objectName cannot be empty"))
 	}
 
+	s3Client.TRACE = trace
+
 	/* parse the path of the filename and Keep only the last path to form the object name */
-	if filename == "" {
+	if len(filename) == 0 {
 		sl := strings.Split(objectName, delimiter)
 		filename = sl[len(sl)-1]
 	}
@@ -46,22 +50,14 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	/* create an S3 session */
-	s3 := s3Client.SetS3Session(s3Config, location)
-	s3client, err := minio.New(s3.Endpoint, s3.AccessKeyID, s3.SecretKey, s3.SSL)
-	if err != nil {
-		log.Fatalln(err)
-	}
+	s3Login := s3Client.LoginS3(s3Config,location)
+	minioc := s3Login.GetS3Client()  				// get minio s3Clie
 
-	/* set transport option */
-	tr := &http.Transport{
-		DisableCompression: true,
-	}
 	runtime.GOMAXPROCS(4)
-	s3client.SetCustomTransport(tr)
-	// s3client.TraceOn(os.Stdout)
+	minioc.SetCustomTransport(s3Client.TR)
+
 	start := time.Now()
-	if err := s3client.FGetObject(bucketName, objectName, filename, minio.GetObjectOptions{}); err != nil {
+	if err := minioc.FGetObject(bucketName, objectName, filename, minio.GetObjectOptions{}); err != nil {
 		log.Fatalln(err)
 	}
 	log.Printf("Duration:  %s", time.Since(start))

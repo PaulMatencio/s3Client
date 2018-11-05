@@ -23,8 +23,9 @@ var (
 	ssl 		bool
 	start       time.Time
 	prefix      string
-	ftype      string
-	help       bool
+	ftype      	string
+	help       	bool
+	trace		bool
 )
 
 
@@ -60,7 +61,8 @@ func main() {
 	flag.StringVar(&directory, "d", "", "-d directory")
 	flag.StringVar(&prefix, "prefix", "", "-prefix aSring  => EX: pxi")
 	flag.StringVar(&ftype,"ftype","","-ftype aString  => EX: tiff")
-	flag.BoolVar(&help,"help",false,"-help")
+	flag.BoolVar(&help,"h",false,"-h")
+	flag.BoolVar(&trace,"trace",false,"-trace")
 
 	flag.Parse()
 	if len(bucketName) == 0 || len(directory) == 0  {
@@ -68,6 +70,7 @@ func main() {
 		log.Fatalln(errors.New("bucketName or objectName cannot be empty"))
 	}
 
+	s3Client.TRACE = trace
 
 	/* read the directory */
 	files, err := ioutil.ReadDir(directory)
@@ -122,14 +125,13 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	/* create an S3 session */
-	s3 := s3Client.SetS3Session(s3Config, location)
-	s3client, err := minio.New(s3.Endpoint, s3.AccessKeyID, s3.SecretKey, s3.SSL)
-	if err != nil {
-		log.Fatalln(err)
-	}
+	/* login to s3 */
+	s3Login := s3Client.LoginS3(s3Config,location)
+	minioc := s3Login.GetS3Client() // get minio Client
+
+
     /* exit if the bucket does not exist */
-	if exist,err := s3client.BucketExists(bucketName); exist == false || err != nil {
+	if exist,err := minioc.BucketExists(bucketName); exist == false || err != nil {
 		log.Printf("Bucket %s does not exist or something went wrong: %v \n",bucketName,err)
 		os.Exit(100)
 	}
@@ -215,7 +217,7 @@ func main() {
 					}
 					// System metadata
 					opts.StorageClass = "STANDARD"
-					n, err = s3client.PutObject(bucketName, objectName, file,
+					n, err = minioc.PutObject(bucketName, objectName, file,
 						size, opts)
 					if err != nil {
 						s3Client.PrintNotOk(filename, err)

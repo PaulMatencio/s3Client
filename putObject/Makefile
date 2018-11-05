@@ -13,7 +13,7 @@ install:
 	$(GOINSTALL)  
 build: 
 	@echo "+ Building $@  $(BINARY_NAME)"
-	$(GOBUILD) -o $(BINARY_NAME)  
+	$(GOBUILD)   
 test: 
 	$(GOTEST) -v ./...
 clean: 

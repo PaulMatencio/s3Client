@@ -15,22 +15,25 @@ import (
 
 func main() {
 	var (
-		bucketName string
-		location string
-		filename string
-		objectName string
-		delimiter string
+		bucketName 	string
+		location 	string
+		filename 	string
+		objectName 	string
+		delimiter 	string
+		trace		bool
 	)
 
 	flag.StringVar(&bucketName,"b","","-b bucketName")
 	flag.StringVar(&location,"s","site1","-s locationName")
 	flag.StringVar(&objectName,"o","","-o objectName")
+	flag.BoolVar(&trace,"trace",false,"-trace")
 	flag.Parse()
 	if len(bucketName) == 0  || len(objectName) == 0 {
 		fmt.Println("bucketName or objectName cannot be empty")
 		flag.Usage()
 		os.Exit(100)
 	}
+	s3Client.TRACE = trace
 	if filename == "" {
 		sl := strings.Split(objectName,delimiter)
 		filename = sl[len(sl)-1]
@@ -41,16 +44,15 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	/* create an S3 session */
-	s3:= s3Client.SetS3Session(s3Config,location)
-	s3client, err := minio.New(s3.Endpoint, s3.AccessKeyID, s3.SecretKey,s3.SSL)
-	if err != nil {
-		log.Fatalln(err)
-	}
+
+	/* login to s3 */
+	s3Login := s3Client.LoginS3(s3Config,location)
+	minioc   := s3Login.GetS3Client() // get minio Client
+
 	/* Get Stat with Options */
 	opts:= minio.StatObjectOptions{}
 	start:= time.Now()
-	objInfo, err := s3client.StatObject(bucketName, objectName,opts)
+	objInfo, err := minioc.StatObject(bucketName, objectName,opts)
 	if err != nil {
 		log.Fatalln(err)
 	}

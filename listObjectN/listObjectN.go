@@ -8,6 +8,7 @@ import (
 	"github.com/s3Client/lib"
 	"log"
 	"errors"
+	"os"
 	"time"
 )
 
@@ -18,6 +19,7 @@ func main() {
 		location string
 		prefix string
 		limit int
+		trace bool
 	)
 
 	/* check input parameters */
@@ -25,6 +27,7 @@ func main() {
 	flag.StringVar(&location,"s","site1","-s locationName")
 	flag.StringVar(&prefix,"prefix","","-prefix prefixName")
 	flag.IntVar(&limit,"limit",100,"-limit number")
+	flag.BoolVar(&trace,"trace",false,"-trace ")
 	flag.Parse()
 
 	if len(bucketName) == 0  {
@@ -37,11 +40,10 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	/* create an S3 session */
-	s3:= s3Client.SetS3Session(s3Config,location)
-	s3client, err := minio.New(s3.Endpoint, s3.AccessKeyID, s3.SecretKey,s3.SSL)
-	if err != nil {
-		log.Fatalln(err)
+	s3Login := s3Client.LoginS3(s3Config,location)
+	minioc := s3Login.GetS3Client()  // get minio s3Client
+	if trace  {
+		minioc.TraceOn(os.Stdout)
 	}
 
 	// List 'N' number of objects from a bucket-name with a matching prefix.
@@ -54,7 +56,7 @@ func main() {
 		defer close(doneCh)
 
 		i := 1
-		for object := range s3client.ListObjects(bucket, prefix, recursive, doneCh) {
+		for object := range minioc.ListObjects(bucket, prefix, recursive, doneCh) {
 			if object.Err != nil {
 				return nil, object.Err
 			}

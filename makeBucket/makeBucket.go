@@ -2,9 +2,8 @@
 package main
 
 import (
-	"flag"
 	"errors"
-	"github.com/minio/minio-go"
+	"flag"
 	"github.com/s3Client/lib"
 	"log"
 )
@@ -37,19 +36,17 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	/* create an S3 session */
-	s3:= s3Client.SetS3Session(s3Config,location)
-	s3client, err := minio.New(s3.Endpoint, s3.AccessKeyID, s3.SecretKey,s3.SSL)
-	if err != nil {
-		log.Fatalln(err)
-	}
+
+	s3Login := s3Client.LoginS3(s3Config,location)
+	minioc := s3Login.GetS3Client()  // get minio s3Client
+
 	/*  Create a bucket at location*/
-	err = s3client.MakeBucket(bucketName, location)
+	err = minioc.MakeBucket(bucketName, location)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	printOk(s3)
+	printOk(s3Login.GetS3Config())
 
 }
 

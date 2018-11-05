@@ -12,16 +12,18 @@ import (
 
 func main() {
 	var (
-		bucketName string            /* Bucket name  */
-		location string              /* S3 location */
-		// filename string              /* output file */
-		objectName string            /* Object name */
-		// delimiter string
+		bucketName 		string              /* Bucket name  */
+		location 		string              /* S3 location */
+		objectName 		string              /* Object name */
+		trace			bool
+		bufsize			int
 	)
 
 	flag.StringVar(&bucketName,"b","","-b bucketName")
 	flag.StringVar(&location,"s","site1","-s locationName")
 	flag.StringVar(&objectName,"o","","-o objectName")
+	flag.BoolVar(&trace,"trace",false,"-trace ")
+	flag.IntVar(&bufsize,"size",65536,"-size of the buffer")
 	// flag.StringVar(&filename,"fn","","-fn fileName")
 
 	flag.Parse()
@@ -37,43 +39,37 @@ func main() {
 	}
 	*/
 
-	/* get Config */
+
+	s3Client.TRACE = trace
+
 	s3Config,err := s3Client.GetConfig("config.json")
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	/* create an S3 session */
-	s3:= s3Client.SetS3Session(s3Config,location)
-	s3client, err := minio.New(s3.Endpoint, s3.AccessKeyID, s3.SecretKey,s3.SSL)
-	if err != nil {
-		log.Fatalln(err)
-	}
+	s3Login := s3Client.LoginS3(s3Config,location)
+	minioc := s3Login.GetS3Client()  // get minio s3Clie
 
 	/* set transport option
 	tr := &http.Transport{
 		DisableCompression: true,
 	}
+
+	s3client.SetCustomTransport(tr)
 	*/
-	// s3client.SetCustomTransport(tr)
-	// s3client.TraceOn(os.Stdout)
+
 	start := time.Now()
+
 	// object reader. It implements io.Reader, io.Seeker, io.ReaderAt and io.Closer interfaces.
 	//minio.GetObjectOptions.SetRange(0,2000)
-	object, err := s3client.GetObject(bucketName, objectName, minio.GetObjectOptions{})
+	object, err := minioc.GetObject(bucketName, objectName, minio.GetObjectOptions{})
 	if err != nil {
 		log.Fatalln(err)
 	}
 	defer object.Close()
-	/* get the size of the object
-	s,_:=object.Stat()
-	log.Printf("Get Metadata:  %s",time.Since(start))
-	if err != nil {
-		log.Fatalln(err)
-	}
-	*/
+
 	/* Retrieve the object*/
-	buffer:= make([]byte,16384 )
+	buffer:= make([]byte,bufsize )
 	var (
 		n int
 		size int
@@ -84,7 +80,6 @@ func main() {
 		if n == 0 {
 			break
 		}
-		//log.Println(n)
 	}
 	log.Printf("Total Duration:  %s  size: %d",time.Since(start),size)
 }
