@@ -18,7 +18,10 @@ func main() {
 		trace		bool
 	)
 
-	/* Same as emptyBucket  */
+	/* Delete objects with prefix
+	   emptyBucket   does not have -prefix
+
+	*/
 
 	flag.StringVar(&bucketName, "b", "", "-b bucketName")
 	flag.StringVar(&location, "s", "site1", "-s locationName")
@@ -38,19 +41,6 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	/*
-	site1:= s3Client.StructToMap(&s3Config.Hosts)[location]
-	endpoint := site1.GetUrl()
-	accessKeyID := site1.GetAccesKey()
-	secretAccessKey := site1.GetSecretKey()
-	ssl := site1.GetSecure()
-
-	s3Client, err := minio.New(endpoint, accessKeyID, secretAccessKey,ssl)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	*/
 	s3Login := s3Client.LoginS3(s3Config,location)
 	minioc := s3Login.GetS3Client()
 
