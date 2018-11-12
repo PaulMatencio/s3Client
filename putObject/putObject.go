@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	bucketName 	string
+	bucket	 	string
 	location 	string
 	endpoint 	string
 	site1 		s3Client.Host
@@ -33,18 +33,18 @@ func main() {
 
 	var (
 		filename string
-		objectName string
+		object string
 		separator string
 	)
 
-	flag.StringVar(&bucketName,"b","","-b bucketName")
-	flag.StringVar(&location,"s","site1","-s locationName")
-	flag.StringVar(&filename,"fn","","-fn File name")
-	flag.StringVar(&objectName,"o","","-o object name")
-	flag.StringVar(&separator,"separator","/","-sep  <aSeparator>")
-	flag.BoolVar(&trace,"trace",false,"-trace")
+	flag.StringVar(&bucket,"b","",s3Client.ABUCKET)
+	flag.StringVar(&location,"s","site1",s3Client.ALOCATION)
+	flag.StringVar(&filename,"f","",s3Client.AFILE)
+	flag.StringVar(&object,"o","",s3Client.AOBJECT)
+	flag.StringVar(&separator,"d",s3Client.DELIMITER,s3Client.ADELIMITER)
+	flag.BoolVar(&trace,"t",false,s3Client.TRACEON)
 	flag.Parse()
-	if len(bucketName) == 0  ||  len(filename) == 0 {
+	if len(bucket) == 0  ||  len(filename) == 0 {
 		flag.Usage()
 		log.Fatalln(errors.New("bucketName or filename cannot be empty"))
 	}
@@ -59,23 +59,23 @@ func main() {
 		log.Fatalln(err)
 	}
 	/* login to s3 */
-	s3Login := s3Client.LoginS3(s3Config,location)
+	s3Login := s3Client.New(s3Config,location)
 	minioc := s3Login.GetS3Client() // get minio Client
 	/* read the file */
-	object, err := os.Open(filename)
+	fi, err := os.Open(filename)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	defer object.Close()
-	objectStat,err := object.Stat()
+	defer fi.Close()
+	objectStat,err := fi.Stat()
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	if len(objectName) == 0 {
+	if len(object) == 0 {
 		sl := strings.Split(filename, separator)
-		objectName = sl[len(sl)-1]
+		object = sl[len(sl)-1]
 	}
 
 	opts:= minio.PutObjectOptions{}
@@ -95,10 +95,10 @@ func main() {
 		minioc.TraceOn(os.Stdout)
 	}
 	start = time.Now()
-	n,err := minioc.PutObject(bucketName, objectName,object, objectStat.Size(),opts)
+	n,err := minioc.PutObject(bucket, object,fi, objectStat.Size(),opts)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	printOk(objectName,n)
+	printOk(object,n)
 }

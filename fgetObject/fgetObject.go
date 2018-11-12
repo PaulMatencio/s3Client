@@ -3,7 +3,6 @@ package main
 
 import (
 	"flag"
-	"runtime"
 	"strings"
 	"time"
 
@@ -15,23 +14,23 @@ import (
 
 func main() {
 	var (
-		bucketName 	string /* Bucket name  */
+		bucket 	string /* Bucket name  */
 		location   	string /* S3 location */
 		filename   	string /* output file */
-		objectName 	string /* Object name */
+		object 	string /* Object name */
 		delimiter  	string
 		trace		bool
 	)
 
-	flag.StringVar(&bucketName, "b", "", "-b bucketName")
-	flag.StringVar(&location, "s", "site1", "-s locationName")
-	flag.StringVar(&objectName, "o", "", "-o objectName")
-	flag.StringVar(&filename, "fn", "", "-fn filename")
-	flag.StringVar(&delimiter, "delimiter", "/", "-delimiter /")
-	flag.BoolVar(&trace,"trace",false,"-trace ")
+	flag.StringVar(&bucket, "b", "", s3Client.ABUCKET)
+	flag.StringVar(&location, "s", "site1", s3Client.ALOCATION)
+	flag.StringVar(&object, "o", "", s3Client.AOBJECT)
+	flag.StringVar(&filename, "f", "", s3Client.AFILE)
+	flag.StringVar(&delimiter, "d", s3Client.DELIMITER, s3Client.ADELIMITER)
+	flag.BoolVar(&trace,"t",false,s3Client.TRACEON)
 	flag.Parse()
 
-	if len(bucketName) == 0 || len(objectName) == 0 {
+	if len(bucket) == 0 || len(object) == 0 {
 		flag.Usage()
 		log.Fatalln(errors.New("bucketName or objectName cannot be empty"))
 	}
@@ -40,7 +39,7 @@ func main() {
 
 	/* parse the path of the filename and Keep only the last path to form the object name */
 	if len(filename) == 0 {
-		sl := strings.Split(objectName, delimiter)
+		sl := strings.Split(object, delimiter)
 		filename = sl[len(sl)-1]
 	}
 
@@ -50,14 +49,17 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	s3Login := s3Client.LoginS3(s3Config,location)
+	s3Login := s3Client.New(s3Config,location)
+
 	minioc := s3Login.GetS3Client()  				// get minio s3Clie
 
+	/*
 	runtime.GOMAXPROCS(4)
 	minioc.SetCustomTransport(s3Client.TR)
+	*/
 
 	start := time.Now()
-	if err := minioc.FGetObject(bucketName, objectName, filename, minio.GetObjectOptions{}); err != nil {
+	if err := minioc.FGetObject(bucket, object, filename, minio.GetObjectOptions{}); err != nil {
 		log.Fatalln(err)
 	}
 	log.Printf("Duration:  %s", time.Since(start))

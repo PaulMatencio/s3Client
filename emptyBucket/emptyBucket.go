@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	bucketName 	string
+	bucket 	string
 	location 	string
 	endpoint 	string
 	site1 		s3Client.Host
@@ -23,15 +23,15 @@ var (
 func main() {
 
 	type Response struct {
-		Filename string
+		Key		 string
 		Err      error
 	}
 
-	flag.StringVar(&bucketName, "b", "", "-b bucketName")
-	flag.StringVar(&location, "s", "site1", "-s locationName")
+	flag.StringVar(&bucket, "b", "", s3Client.ABUCKET)
+	flag.StringVar(&location, "s", "site1", s3Client.ALOCATION)
 	flag.Parse()
-	if len(bucketName) == 0  {
-		log.Fatalln(errors.New("bucketName is missing"))
+	if len(bucket) == 0  {
+		log.Fatalln(errors.New("bucket is missing"))
 	}
 
 	/* get the Config */
@@ -41,7 +41,7 @@ func main() {
 	}
 
 	/* login to S3  */
-	s3Login := s3Client.LoginS3(s3Config,location)
+	s3Login := s3Client.New(s3Config,location)
 	minioc := s3Login.GetS3Client()  				// get minio s3Clie
 	runtime.GOMAXPROCS(4)
 
@@ -56,7 +56,7 @@ func main() {
 
 	prefix:=""
 	filenames := []string{}
-	for objInfo := range minioc.ListObjects(bucketName, prefix, true, doneCh) {
+	for objInfo := range minioc.ListObjects(bucket, prefix, true, doneCh) {
 		if objInfo.Err != nil {
 			fmt.Println(objInfo.Err)
 			return
@@ -65,7 +65,7 @@ func main() {
 	}
 
 	start0 := time.Now()
-	messages := make(chan Response)
+	ch := make(chan Response)
 	runtime.GOMAXPROCS(4)
 	N := len(filenames)
 	T := 1
@@ -78,36 +78,36 @@ func main() {
 			go func( string) {
 
 				if err == nil {
-					err = minioc.RemoveObject(bucketName,filename)
+					err = minioc.RemoveObject(bucket,filename)
 					if err != nil {
 						s3Client.PrintNotOk(filename, err)
 					}
 				} else {
 					s3Client.PrintNotOk(filename, err)
 				}
-				messages <- Response{filename, err}
+				ch <- Response{filename, err}
 			}(filename)
 		}
 	if (N == 0 ) {
-		log.Printf("Bucket %s was empty",bucketName)
+		log.Printf("Bucket %s was empty",bucket)
 		return
 	}
 	/*  wait  until all remove are done  */
 	for {
 
 		select {
-				case /* r:= */ <-messages:
+				case /* r:= */ <-ch:
 					{
 						// fmt.Println(r.Filename,T,N)
 						if T == N {
-							log.Printf("%d objects have been removed from  bucket:%s in %s\n", N, bucketName,time.Since(start0))
+							log.Printf("%d objects have been removed from  bucket:%s in %s\n", N, bucket,time.Since(start0))
 							return
 						}
 						T++
 					}
 				case <-time.After(50 * time.Millisecond):
 					fmt.Printf("w")
-				}
 		}
+	}
 
 }

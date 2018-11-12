@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"fmt"
 	"github.com/s3Client/lib"
 	"log"
 	"os"
@@ -15,27 +14,27 @@ import (
 
 func main() {
 	var (
-		bucketName 	string
+		bucket		string
 		location 	string
 		filename 	string
-		objectName 	string
+		object 	string
 		delimiter 	string
 		trace		bool
 	)
 
-	flag.StringVar(&bucketName,"b","","-b bucketName")
+	flag.StringVar(&bucket,"b","","-b bucketName")
 	flag.StringVar(&location,"s","site1","-s locationName")
-	flag.StringVar(&objectName,"o","","-o objectName")
+	flag.StringVar(&object,"o","","-o objectName")
 	flag.BoolVar(&trace,"trace",false,"-trace")
 	flag.Parse()
-	if len(bucketName) == 0  || len(objectName) == 0 {
-		fmt.Println("bucketName or objectName cannot be empty")
+	if len(bucket) == 0  || len(object) == 0 {
+		log.Println("bucket name  or object name cannot be empty")
 		flag.Usage()
 		os.Exit(100)
 	}
 	s3Client.TRACE = trace
 	if filename == "" {
-		sl := strings.Split(objectName,delimiter)
+		sl := strings.Split(object,delimiter)
 		filename = sl[len(sl)-1]
 	}
 
@@ -46,13 +45,13 @@ func main() {
 	}
 
 	/* login to s3 */
-	s3Login := s3Client.LoginS3(s3Config,location)
+	s3Login := s3Client.New(s3Config,location)
 	minioc   := s3Login.GetS3Client() // get minio Client
 
 	/* Get Stat with Options */
 	opts:= minio.StatObjectOptions{}
 	start:= time.Now()
-	objInfo, err := minioc.StatObject(bucketName, objectName,opts)
+	objInfo, err := minioc.StatObject(bucket, object,opts)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -60,7 +59,7 @@ func main() {
 	m1 := s3Client.ExtractUserMeta(objInfo.Metadata)
 	metadata, _ := json.Marshal(m1)
 
-	fmt.Printf("Duration: %s\nObject key : %s\nContent Type: %s\nLast Modified: %s\nOwner %s\nSize: %d\nUser metadata: %s\n",time.Since(start),objInfo.Key, objInfo.ContentType,  objInfo.LastModified, objInfo.Owner, objInfo.Size,metadata,)
+	log.Printf("Duration: %s\nObject key : %s\nContent Type: %s\nLast Modified: %s\nOwner %s\nSize: %d\nUser metadata: %s\n",time.Since(start),objInfo.Key, objInfo.ContentType,  objInfo.LastModified, objInfo.Owner, objInfo.Size,metadata,)
 
 
 }

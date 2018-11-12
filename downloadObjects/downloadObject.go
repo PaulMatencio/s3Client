@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	bucketName 	string
+	bucket 	string
 	location 	string
 	endpoint 	string
 	site1 		s3Client.Host
@@ -31,13 +31,13 @@ func main() {
 		Err      error
 	}
 
-	flag.StringVar(&bucketName, "b", "", "-b bucketName")
-	flag.StringVar(&location, "s", "site1", "-s locationName")
-	flag.StringVar(&prefix, "prefix", "", "-prefix prefix")
+	flag.StringVar(&bucket, "b", "", s3Client.ABUCKET)
+	flag.StringVar(&location, "s", "site1", s3Client.ALOCATION)
+	flag.StringVar(&prefix, "p", "", s3Client.TRACEON)
 	flag.Parse()
-	if len(bucketName) == 0  {
+	if len(bucket) == 0  {
 		flag.Usage()
-		log.Fatalln(errors.New("bucketName is missing"))
+		log.Fatalln(errors.New("bucket is missing"))
 	}
 
 	/* get the Config */
@@ -47,7 +47,7 @@ func main() {
 	}
 
 	/* login to S3  */
-	s3Login := s3Client.LoginS3(s3Config,location)
+	s3Login := s3Client.New(s3Config,location)
 	minioc := s3Login.GetS3Client()  				// get minio s3Clie
 	runtime.GOMAXPROCS(4)
 
@@ -61,7 +61,7 @@ func main() {
 	// List the buckets witout  prefix
 
 	filenames := []string{}
-	for objInfo := range minioc.ListObjects(bucketName, prefix, true, doneCh) {
+	for objInfo := range minioc.ListObjects(bucket, prefix, true, doneCh) {
 		if objInfo.Err != nil {
 			fmt.Println(objInfo.Err)
 			return
@@ -86,7 +86,7 @@ func main() {
 			if err == nil {
 				r := s3Client.S3Request{}
 				options := &minio.GetObjectOptions{}
-				r.S3BuildGetRequest(&s3Login,  bucketName,  filename,  options)
+				r.S3BuildGetRequest(&s3Login,  bucket,  filename,  options)
 				buf,err := s3Client.GetObject(r)
 				messages <- Response{filename,buf,err}
 			} else {
@@ -96,7 +96,7 @@ func main() {
 		}(filename)
 	}
 	if (N == 0 ) {
-		log.Printf("Bucket %s is empty",bucketName)
+		log.Printf("Bucket %s is empty",bucket)
 		return
 	}
 	/*  wait  until all remove are done  */
@@ -108,7 +108,7 @@ func main() {
 				log.Printf("Download Object Key: %s / Object size %d bytes",r.Filename, r.Buffer.Len())
 
 				if T == N {
-					log.Printf("Downloaded %d objects ( Total size %d bytes)  from %s in %s\n", N, S, bucketName,time.Since(start0))
+					log.Printf("Downloaded %d objects ( Total size %d bytes)  from %s in %s\n", N, S, bucket,time.Since(start0))
 					return
 				}
 				T++

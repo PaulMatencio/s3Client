@@ -13,19 +13,30 @@ type S3 struct {
 	SSL 			bool             `json:"ssl"`
 }
 
+/*
 
+ */
 func (s3 *S3) GetHost() Host {
 	return s3.Site
 }
 
+/*
+
+ */
 func (s3 *S3) GetEndPoint()  string {
 	return s3.Endpoint
 }
 
+/*
+
+ */
 func (s3 *S3) GetAccessKey() string {
 	return s3.AccessKeyID
 }
 
+/*
+
+ */
 func(s3 *S3) GetSecretKey() string {
 	return s3.SecretKey
 }
@@ -37,14 +48,23 @@ type S3Login struct {
 	MinioC  *minio.Client
 }
 
+/*
+
+ */
 func (s3Login *S3Login) GetS3Client() (*minio.Client) {
 	return s3Login.MinioC
 }
 
+/*
+
+ */
 func (s3Login *S3Login) GetS3Config() (*S3) {
 	return s3Login.S3
 }
 
+/*
+
+ */
 func SetS3Config(s3Config Config,location string) (S3) {
 	 var (
 	 	s 		S3
@@ -59,6 +79,10 @@ func SetS3Config(s3Config Config,location string) (S3) {
 	return s
 }
 
+/*
+
+ */
+
 func S3Connect(s3 S3) (*minio.Client) {
 	minioc, err := minio.New(s3.Endpoint, s3.AccessKeyID, s3.SecretKey,s3.SSL)
 	if err != nil {
@@ -67,10 +91,16 @@ func S3Connect(s3 S3) (*minio.Client) {
 	return minioc
 }
 
-func LoginS3(s3Config Config,location string)  (S3Login){
+/*
+
+ */
+func New(s3Config Config,location string)  (S3Login){
+
 	s:=  SetS3Config(s3Config,location)
 	return  S3Login {
 		S3: &s,
 		MinioC : S3Connect(s),
 	}
 }
+
+

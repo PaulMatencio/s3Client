@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	bucketName 	string
+	bucket 		string
 	location 	string
 	endpoint 	string
 	site1 		s3Client.Host
@@ -56,18 +56,18 @@ func main() {
 		Metaname string
 	}
 
-	flag.StringVar(&bucketName, "b", "", "-b bucketName")
-	flag.StringVar(&location, "s", "site1", "-s locationName")
-	flag.StringVar(&directory, "d", "", "-d directory")
-	flag.StringVar(&prefix, "prefix", "", "-prefix aSring  => EX: pxi")
-	flag.StringVar(&ftype,"ftype","","-ftype aString  => EX: tiff")
+	flag.StringVar(&bucket, "b", "", s3Client.ABUCKET)
+	flag.StringVar(&location, "s", "site1", s3Client.ALOCATION)
+	flag.StringVar(&directory, "d", "", s3Client.AINDIRECTORY)
+	flag.StringVar(&prefix, "prefix", "", s3Client.APREFIX)
+	flag.StringVar(&ftype,"ft","","-ftype aString  => EX: tiff")
 	flag.BoolVar(&help,"h",false,"-h")
-	flag.BoolVar(&trace,"trace",false,"-trace")
+	flag.BoolVar(&trace,"trace",false,s3Client.TRACEON)
 
 	flag.Parse()
-	if len(bucketName) == 0 || len(directory) == 0  {
+	if len(bucket) == 0 || len(directory) == 0  {
 		flag.Usage()
-		log.Fatalln(errors.New("bucketName or objectName cannot be empty"))
+		log.Fatalln(errors.New("bucket and/or input directory  are missing"))
 	}
 
 	s3Client.TRACE = trace
@@ -126,13 +126,13 @@ func main() {
 	}
 
 	/* login to s3 */
-	s3Login := s3Client.LoginS3(s3Config,location)
+	s3Login := s3Client.New(s3Config,location)
 	minioc := s3Login.GetS3Client() // get minio Client
 
 
     /* exit if the bucket does not exist */
-	if exist,err := minioc.BucketExists(bucketName); exist == false || err != nil {
-		log.Printf("Bucket %s does not exist or something went wrong: %v \n",bucketName,err)
+	if exist,err := minioc.BucketExists(bucket); exist == false || err != nil {
+		log.Printf("Bucket %s does not exist or something went wrong: %v \n",bucket,err)
 		os.Exit(100)
 	}
 
@@ -217,7 +217,7 @@ func main() {
 					}
 					// System metadata
 					opts.StorageClass = "STANDARD"
-					n, err = minioc.PutObject(bucketName, objectName, file,
+					n, err = minioc.PutObject(bucket, objectName, file,
 						size, opts)
 					if err != nil {
 						s3Client.PrintNotOk(filename, err)

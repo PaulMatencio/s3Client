@@ -15,7 +15,7 @@ import (
 func main() {
 
 	var (
-		bucketName string
+		bucket string
 		location string
 		prefix string
 		limit int
@@ -23,16 +23,16 @@ func main() {
 	)
 
 	/* check input parameters */
-	flag.StringVar(&bucketName,"b","","-b bucketName")
-	flag.StringVar(&location,"s","site1","-s locationName")
-	flag.StringVar(&prefix,"prefix","","-prefix prefixName")
-	flag.IntVar(&limit,"limit",100,"-limit number")
-	flag.BoolVar(&trace,"trace",false,"-trace ")
+	flag.StringVar(&bucket,"b","",s3Client.ABUCKET)
+	flag.StringVar(&location,"s","site1",s3Client.ALOCATION)
+	flag.StringVar(&prefix,"p","",s3Client.APREFIX)
+	flag.IntVar(&limit,"m",100,s3Client.AMAXKEY)
+	flag.BoolVar(&trace,"t",false,s3Client.TRACEON)
 	flag.Parse()
 
-	if len(bucketName) == 0  {
+	if len(bucket) == 0  {
 		flag.Usage()
-		log.Fatalln(errors.New("Bucket name is missing"))
+		log.Fatalln(errors.New("Bucket is missing"))
 	}
 
 	/* get config  */
@@ -40,7 +40,7 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	s3Login := s3Client.LoginS3(s3Config,location)
+	s3Login := s3Client.New(s3Config,location)
 	minioc := s3Login.GetS3Client()  // get minio s3Client
 	if trace  {
 		minioc.TraceOn(os.Stdout)
@@ -48,6 +48,7 @@ func main() {
 
 	// List 'N' number of objects from a bucket-name with a matching prefix.
 	start := time.Now()
+
 	listObjectsN := func(bucket, prefix string, recursive bool, N int) (objsInfo []minio.ObjectInfo, err error) {
 		// Create a done channel to control 'ListObjects' go routine.
 		doneCh := make(chan struct{}, 1)
@@ -74,14 +75,16 @@ func main() {
 
 	// List recursively first n entries for prefix 'my-prefixname'.
 	recursive := true
-	objsInfo, err := listObjectsN(bucketName,prefix, recursive, limit)
+
+	objsInfo, err := listObjectsN(bucket,prefix, recursive, limit)
 	if err != nil {
 		fmt.Println(err)
 	}
 
 	for r := range objsInfo{
 		object := objsInfo[r]
-		fmt.Printf("Name:%s Size:%d  ContentType:%s\n  Metadata %s\n" ,object.Key,object.Size,object.ContentType,object.Metadata)
+		log.Printf("Name:%s Size:%d Last modified:%v\n" ,object.Key,object.Size,object.LastModified)
 	}
-	fmt.Printf("Listing  %d objects in %s\n ",len(objsInfo),time.Since(start))
+
+	log.Printf("Listing  %d objects in %s\n ",len(objsInfo),   time.Since(start))
 }

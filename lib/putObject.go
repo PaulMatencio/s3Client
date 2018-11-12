@@ -19,64 +19,64 @@ type S3PutRequest struct {
 
 
 
-func (s3Request *S3PutRequest) SetS3Client(s3c *minio.Client) {
-	s3Request.MinioC = s3c
+func (r *S3PutRequest) SetS3Client(s3c *minio.Client) {
+	r.MinioC = s3c
 }
 
-func (s3Request *S3PutRequest) SetByteBuffer(buf *bytes.Buffer) {
-	s3Request.Buf = buf
+func (r *S3PutRequest) SetByteBuffer(buf *bytes.Buffer) {
+	r.Buf = buf
 }
 
-func (s3Request *S3PutRequest) SetBucketName(bucket string) {
-	s3Request.Bucket = bucket
+func (r *S3PutRequest) SetBucketName(bucket string) {
+	r.Bucket = bucket
 }
 
-func (s3Request *S3PutRequest) SetKey(key string) {
-	s3Request.Bucket = key
+func (r *S3PutRequest) SetKey(key string) {
+	r.Bucket = key
 }
 
-func (s3Request *S3PutRequest) SetPutOpts(options *minio.PutObjectOptions) {
-	s3Request.PutOpts= options
+func (r *S3PutRequest) SetPutOpts(options *minio.PutObjectOptions) {
+	r.PutOpts= options
 }
 
-func (s3Request *S3PutRequest) SetTrace(trace bool) {
-	s3Request.Trace = trace
+func (r *S3PutRequest) SetTrace(trace bool) {
+	r.Trace = trace
 }
 
-func (s3Request *S3PutRequest) S3BuildPutRequest(login *S3Login, bucket string, key string, buf *bytes.Buffer, putoptions *minio.PutObjectOptions){
+func (r *S3PutRequest) S3BuildPutRequest(login *S3Login, bucket string, key string, buf *bytes.Buffer, putoptions *minio.PutObjectOptions){
 
-	s3Request.MinioC 	=  login.MinioC
-	s3Request.Buf    	=  buf
-	s3Request.Bucket 	=  bucket
-	s3Request.Key		=  key
-	s3Request.PutOpts 	=  putoptions
+	r.MinioC 	=  login.MinioC
+	r.Buf    	=  buf
+	r.Bucket 	=  bucket
+	r.Key		=  key
+	r.PutOpts 	=  putoptions
 
 	if TRACE {
-		s3Request.Trace	= true
+		r.Trace	= true
 	} else {
-		s3Request.Trace	= false
+		r.Trace	= false
 	}
 }
 
 
-func PutObject(request S3PutRequest) (int64, error) {
+func PutObject(r S3PutRequest) (int64, error) {
 
-	if request.Trace {
-		request.MinioC.TraceOn(os.Stdout)
+	if r.Trace {
+		r.MinioC.TraceOn(os.Stdout)
 	}
 
 	var (
-		r io.Reader
+		rd io.Reader
 		b []byte
 	)
 
-	if b = request.Buf.Bytes(); b != nil {
-		 r = bytes.NewReader(b)
+	if b = r.Buf.Bytes(); b != nil {
+		 rd = bytes.NewReader(b)
 	} else {
 		return 0,errors.New("Input buffer image is empty !!")
 	}
 
-	return request.MinioC.PutObject(request.Bucket,request.Key,r, int64(len(b)),*request.PutOpts);
+	return r.MinioC.PutObject(r.Bucket,r.Key,rd, int64(len(b)),*r.PutOpts);
 
 }
 

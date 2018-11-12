@@ -15,7 +15,7 @@ import (
 func main() {
 
 	var (
-		bucketName 	string
+		bucket	string
 		location 	string
 		prefix		string
 		limit 		int
@@ -23,15 +23,15 @@ func main() {
 	)
 
 	/* check input parameters */
-	flag.StringVar(&bucketName,"b","","-b bucketName")
-	flag.StringVar(&location,"s","site1","-s locationName")
-	flag.StringVar(&prefix,"prefix","","-prefix prefixName")
-	flag.IntVar(&limit,"limit",100,"-limit number")
-	flag.BoolVar(&trace,"trace",false,"-trace ")
+	flag.StringVar(&bucket,"b","",s3Client.ABUCKET)
+	flag.StringVar(&location,"s","site1",s3Client.ALOCATION)
+	flag.StringVar(&prefix,"p","",s3Client.APREFIX)
+	flag.IntVar(&limit,"m",100,s3Client.AMAXKEY)
+	flag.BoolVar(&trace,"t",false,s3Client.TRACEON)
 	flag.Parse()
-	if len(bucketName) == 0  {
+	if len(bucket) == 0  {
 		flag.Usage()
-		log.Fatalln(errors.New("bucketName cannot be empty"))
+		log.Fatalln(errors.New("bucket is missing"))
 	}
 
 	/* get config  */
@@ -40,7 +40,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	s3Login := s3Client.LoginS3(s3Config,location)
+	s3Login := s3Client.New(s3Config,location)
 	minioc := s3Login.GetS3Client()  // get minio s3Client
 	if trace  {
 		minioc.TraceOn(os.Stdout)
@@ -55,7 +55,7 @@ func main() {
 	// List all objects from a bucket-name with a matching prefix.
 	start:= time.Now()
 	n:= 0
-	for objInfo := range minioc.ListObjects(bucketName, prefix, true, doneCh) {
+	for objInfo := range minioc.ListObjects(bucket, prefix, true, doneCh) {
 		if objInfo.Err != nil {
 			fmt.Println(objInfo.Err)
 			return

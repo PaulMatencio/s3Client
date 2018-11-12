@@ -13,28 +13,28 @@ import (
 
 func main() {
 	var (
-		bucketName 	string /* Bucket name  */
+		bucket	string /* Bucket name  */
 		location   	string /* S3 location */
 		filename   	string /* output file */
-		objectName 	string /* Object name */
+		object 	string /* Object name */
 		trace		bool
 	)
 
-	flag.StringVar(&bucketName, "b", "", "-b bucketName")
-	flag.StringVar(&location, "s", "site1", "-s locationName")
-	flag.StringVar(&objectName, "o", "", "-o objectName")
-	flag.StringVar(&filename, "fn", "", "-fn filename")
-	flag.BoolVar(&trace,"trace",false,"-trace ")
+	flag.StringVar(&bucket, "b", "", s3Client.ABUCKET)
+	flag.StringVar(&location, "s", "site1", s3Client.ALOCATION)
+	flag.StringVar(&object, "o", "", s3Client.AOBJECT)
+	flag.StringVar(&filename, "f", "", s3Client.AFILE)
+	flag.BoolVar(&trace,"t",false,s3Client.TRACEON)
 
 	flag.Parse()
-	if len(bucketName) == 0 || len(filename) == 0 {
+	if len(bucket) == 0 || len(filename) == 0 {
 		flag.Usage()
 		log.Fatalln(errors.New("bucketName or filename cannot be empty"))
 	}
 
-	if len(objectName) == 0 {
+	if len(object) == 0 {
 		sl := strings.Split(filename, "/")
-		objectName = sl[len(sl)-1]
+		object = sl[len(sl)-1]
 	}
 
 	s3Client.TRACE =trace
@@ -45,14 +45,14 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	s3Login := s3Client.LoginS3(s3Config,location)
+	s3Login := s3Client.New(s3Config,location)
 	minioc := s3Login.GetS3Client()  	// get minio s3Client
 
 	minioc.SetCustomTransport(s3Client.TR)
 	opts := minio.PutObjectOptions{}
 	opts.ContentType="application/octet-stream"
 	start := time.Now()
-	if  _,err := minioc.FPutObject(bucketName, objectName, filename,opts); err != nil {
+	if  _,err := minioc.FPutObject(bucket, object, filename,opts); err != nil {
 		log.Fatalln(err)
 	}
 	log.Printf("Duration:  %s", time.Since(start))

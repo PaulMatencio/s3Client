@@ -12,7 +12,7 @@ import (
 func main() {
 
 	var (
-		bucketName 	string
+		bucket 	string
 		location   	string
 		prefix     	string
 		trace		bool
@@ -23,13 +23,13 @@ func main() {
 
 	*/
 
-	flag.StringVar(&bucketName, "b", "", "-b bucketName")
-	flag.StringVar(&location, "s", "site1", "-s locationName")
-	flag.StringVar(&prefix, "prefix", "", "-prefix prefixName")
-	flag.BoolVar(&trace,"trace",false,"-trace ")
+	flag.StringVar(&bucket, "b", "", s3Client.ABUCKET)
+	flag.StringVar(&location, "s", "site1", s3Client.ALOCATION)
+	flag.StringVar(&prefix, "p", "", s3Client.APREFIX)
+	flag.BoolVar(&trace,"t",false,s3Client.TRACEON)
 	flag.Parse()
 
-	if len(bucketName) == 0 {
+	if len(bucket) == 0 {
 		flag.Usage()
 		log.Fatalln(errors.New("Bucket is missing"))
 	}
@@ -41,7 +41,7 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	s3Login := s3Client.LoginS3(s3Config,location)
+	s3Login := s3Client.New(s3Config,location)
 	minioc := s3Login.GetS3Client()
 
 	objectsCh := make(chan string)
@@ -50,7 +50,7 @@ func main() {
 	go func() {
 		defer close(objectsCh)
 		// List all objects from a bucket-name with a matching prefix.
-		for object := range minioc.ListObjects(bucketName, prefix, true, nil) {
+		for object := range minioc.ListObjects(bucket, prefix, true, nil) {
 			if object.Err != nil {
 				log.Fatalln(object.Err)
 			}
@@ -58,7 +58,7 @@ func main() {
 		}
 	}()
 
-	for rErr := range minioc.RemoveObjects(bucketName, objectsCh) {
+	for rErr := range minioc.RemoveObjects(bucket, objectsCh) {
 		fmt.Println("Error detected during deletion: ", rErr)
 	}
 

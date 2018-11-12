@@ -9,27 +9,27 @@ import (
 	"log"
 	"net/http"
 	"time"
-	"user/files/lib"
+	"github.com/moses/user/files/lib"
 )
 
 func main() {
 	var (
-		bucketName 		string              /* Bucket name  */
+		bucket 			string              /* Bucket name  */
 		location 		string              /* S3 location */
-		objectName 		string              /* Object name */
+		object 			string              /* Object name */
 		filename        string              /* file name  */
 		trace			bool
 
 	)
 
-	flag.StringVar(&bucketName,"b","","-b bucketName")
-	flag.StringVar(&location,"s","site1","-s locationName")
-	flag.StringVar(&objectName,"o","","-o objectName")
-	flag.BoolVar(&trace,"trace",false,"-trace ")
-	flag.StringVar(&filename,"fn","","-fn fileName")
+	flag.StringVar(&bucket,"b","",s3Client.ABUCKET)
+	flag.StringVar(&location,"s","site1",s3Client.ALOCATION)
+	flag.StringVar(&object,"o","",s3Client.AOBJECT)
+	flag.BoolVar(&trace,"t",false,s3Client.TRACEON)
+	flag.StringVar(&filename,"f","",s3Client.AFILE)
 
 	flag.Parse()
-	if len(bucketName) == 0  || len(objectName) == 0 {
+	if len(bucket) == 0  || len(object) == 0 {
 		flag.Usage()
 		log.Fatalln(errors.New("bucketName or objectName cannot be empty"))
 	}
@@ -40,7 +40,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	s3Login := s3Client.LoginS3(s3Config,location)
+	s3Login := s3Client.New(s3Config,location)
 	minioc := s3Login.GetS3Client()                            // get minio s3Client after the login  to  set transport option
 	tr := &http.Transport{
 		DisableCompression: true,
@@ -52,11 +52,11 @@ func main() {
 	r := s3Client.S3Request{}
 	options := &minio.GetObjectOptions{}
 	// options.SetRange(0,10)
-	r.S3BuildGetRequest(&s3Login,  bucketName,  objectName,  options)
+	r.S3BuildGetRequest(&s3Login,  bucket,  object,  options)
 	buf,err := s3Client.GetObject(r)
 
 	if err != nil {
-		log.Fatalln("Get Key %s error %v",objectName,err)
+		log.Fatalln("Get Key %s error %v",object,err)
 	}
 	if len(filename) > 0 {
 		files.WriteFile(filename,buf.Bytes(),0644)
