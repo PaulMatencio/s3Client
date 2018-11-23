@@ -1,4 +1,3 @@
-
 package main
 
 import (
@@ -103,7 +102,7 @@ func main() {
 			// remove n objects returned by previous list Objects
 			for _,v := range results.Contents {
 				//  Objects removal are started concurrently using go routine
-			    go 	func(b string, k string ) {
+				go 	func(b string, k string ) {
 					err := s3r.MinioC.RemoveObject(b, k)
 					ch <- Response{k,err}
 				}(bucket,v.Key)
@@ -126,7 +125,7 @@ func main() {
 				}
 			}
 
-			Next:
+		Next:
 			N +=n
 
 			goLog.Info.Printf("Is truncated  ? %v - After: %s - Next: %s\n", results.IsTruncated, results.StartAfter,results.NextContinuationToken)
@@ -147,3 +146,5 @@ func main() {
 	}
 
 }
+
+

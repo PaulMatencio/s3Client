@@ -43,18 +43,10 @@ func (r *S3PutRequest) SetTrace(trace bool) {
 	r.Trace = trace
 }
 
-func (r *S3PutRequest) S3BuildPutRequest(login *S3Login, bucket string, key string, buf *bytes.Buffer, putoptions *minio.PutObjectOptions){
-
-	r.MinioC 	=  login.MinioC
-	r.Buf    	=  buf
-	r.Bucket 	=  bucket
-	r.Key		=  key
-	r.PutOpts 	=  putoptions
-
+func (r *S3PutRequest) S3BuildPutRequest(login *S3Login, bucket string, key string, buf *bytes.Buffer, putoptions *minio.PutObjectOptions)  {
+	r.MinioC,r.Buf,r.Bucket,r.Key,r.PutOpts,r.Trace 	=  login.MinioC,buf,bucket,key,putoptions,false
 	if TRACE {
 		r.Trace	= true
-	} else {
-		r.Trace	= false
 	}
 }
 

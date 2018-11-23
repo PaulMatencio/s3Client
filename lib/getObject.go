@@ -2,10 +2,9 @@ package s3Client
 
 import (
 	"bytes"
-	"github.com/minio/minio-go"
-	"log"
-	"os"
 	"errors"
+	"github.com/minio/minio-go"
+	"os"
 )
 
 
@@ -43,53 +42,69 @@ func (r *S3Request) SetTrace(trace bool) {
 }
 
 func (r *S3Request) S3BuildGetRequest(login *S3Login, bucket string, key string, options *minio.GetObjectOptions){
-
-	r.MinioC 	=  login.MinioC
-	r.Bucket 	=  bucket
-	r.Key		=  key
-	r.Opts 	    =  options
-	r.BufSize   =  BUFFERSIZE  /* constant */
-
+	r.MinioC,r.Bucket,r.Key,r.Opts,r.BufSize,r.Trace	=  login.MinioC,bucket,key,options,BUFFERSIZE,false
 	if TRACE {
 		r.Trace	= true
-	} else {
-		r.Trace	= false
 	}
 }
 
 
+/*
+
+ */
+
 func GetObject(r S3Request) (*bytes.Buffer, error) {
 
+	var (
+		object *minio.Object
+		err error
+		n, size int
+	)
 	if r.Trace {
 		r.MinioC.TraceOn(os.Stdout)
 	}
 
-	object,err := r.MinioC.GetObject(r.Bucket,r.Key,*r.Opts);
+	// minio,getObject returns the address of a object stream
+	/* Abvailable methods are
+	  object.Read( [] byte)  ->  return the number of bytes read
+	  object.Stat() ->  return minio.ObjectInfo
+	  object.ReadAt([]byte,offset int64)   -> return the number of bytes
+	  object.Seek(offset int64, whence int)
+	  object.Close()   Close the object stream
+	*/
 
-	if err != nil {
-		log.Fatalln(err)
+
+	// it is possible to check if the Object exist by using object.Stat(). a HTTP HEAD request will be sent to S3
+	// However it is faster no to do it when the S3 server is distant
+	// Just  getObject ( HTTP GET)
+
+	if object,err = r.MinioC.GetObject(r.Bucket,r.Key,*r.Opts); err != nil {
+		return nil,err
 	}
+
+	// the stream will be closed when the function is exited
 
 	defer object.Close()
 
-	/* Retrieve the object*/
+	/* Reading  the object*/
 	buffer:= make([]byte,r.BufSize)
-	var  buf = new(bytes.Buffer)
-	var (
-		n int
-		size int
-	)
+	buf := new(bytes.Buffer)
 
 	for {
-		n, _ = object.Read(buffer)
-		size += n
-		buf.Write(buffer[0:n])
-		if n == 0 {
-			break
+		n, err = object.Read(buffer)
+		if err != nil {
+			size += n
+			buf.Write(buffer[0:n])
+			if n == 0 {
+				break
+			}
+		} else {
+			return buf,err
 		}
 	}
+
 	if buf.Len() == 0 {
-		err = errors.New(r.Key + " not Found")
+		err = errors.New(r.Key + " is empty or not found")
 	}
 	return buf,err
 

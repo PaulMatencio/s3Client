@@ -1,3 +1,4 @@
+
 package main
 
 import (
@@ -6,6 +7,7 @@ import (
 	"github.com/s3Client/lib"
 	"github.com/s3Client/s3Core/lib"
 	"log"
+	"time"
 )
 
 
@@ -15,11 +17,9 @@ func main() {
 		bucket 		string
 		location 	string
 		prefix		string
-		// next        string
 		delimiter   string
-		after       string
+		marker      string
 		limit 		int
-		fetchOwner  bool
 		trace		bool
 		loop        bool
 	)
@@ -28,11 +28,9 @@ func main() {
 	flag.StringVar(&bucket,"b","",s3Client.ABUCKET)
 	flag.StringVar(&location,"s","site1",s3Client.ALOCATION)
 	flag.StringVar(&prefix,"p","",s3Client.APREFIX)
-	//flag.StringVar(&next,"next","","-next <Next continuation Token>")
-	flag.StringVar(&after,"after","","-after <aString>")
+ 	flag.StringVar(&marker,"marker","","-marker aString")
 	flag.StringVar(&delimiter,"d","",s3Client.ADELIMITER)
 	flag.IntVar(&limit,"m",100,s3Client.AMAXKEY)
-	flag.BoolVar(&fetchOwner,"fetchOwner",false,"-fo fetchOwner")
 	flag.BoolVar(&loop,"l",false,"-l loop over to N")
 	flag.BoolVar(&trace,"t",false,s3Client.TRACEON)
 
@@ -42,6 +40,9 @@ func main() {
 		flag.Usage()
 		log.Fatalln(errors.New("bucket name cannot be empty"))
 	}
+
+
+
 
 	/* get config  */
 	s3Config,err := s3Client.GetConfig("config.json")
@@ -54,23 +55,22 @@ func main() {
 	s3Login := s3Core.New(s3Config,location)
 
 	/*
-		Build a List request
+		Build a List request  V1
 	 */
 	s3r := s3Core.S3ListRequest{
 		MinioC: s3Login.MinioC,
 		Bucket: bucket,
 		Prefix: prefix,
 		Delimiter: delimiter,
-		StartAfter: after,
-		// Marker: next,
+		Marker: marker,
 		Limit: limit,
-		FetchOwner:fetchOwner,
 	}
 
 	/*
 		disable trace
 		enable trace  list http requests
 	*/
+
 	s3r.Trace = false
 	if s3Client.TRACE || trace {
 		s3r.Trace	= true
@@ -78,19 +78,23 @@ func main() {
 
 	// s3r.S3BuildListRequest(&s3Login, bucket, prefix, false,delimiter, after, next,limit)
 
-
+	start := time.Now()
 	for {
 
-		if results,err := s3Core.ListObjectsV2(s3r) ; err == nil {
+		if results,err := s3Core.ListObjectsV1(s3r) ; err == nil {
+			var  nextMarker string
 
 			for k,v := range results.Contents {
 				log.Println(k,v.Key,v.Size)
+				nextMarker = v.Key  // Ugly bud needed because Scality S3 does not return  next marker as expected : Bug
 			}
 
-			log.Printf("Is truncated  ? %v - After: %s - Next: %s", results.IsTruncated, results.StartAfter,results.NextContinuationToken)
+			log.Printf("Is truncated  ? %v - Marker: %s - Next marker: %s", results.IsTruncated, results.Marker, nextMarker)
 			if results.IsTruncated && loop {
-				s3r.SetStartAfter(results.NextContinuationToken)
+			// 	s3r.SetMarker(results.NextMarker)
+				s3r.SetMarker(nextMarker)
 			} else {
+				log.Printf("Elapsed time: %s",time.Since(start))
 				return
 			}
 
@@ -98,5 +102,6 @@ func main() {
 			log.Fatalf("List error %v",err)
 		}
 	}
+
 
 }
