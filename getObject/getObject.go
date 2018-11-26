@@ -19,7 +19,6 @@ func main() {
 		object 			string              /* Object name */
 		filename        string              /* file name  */
 		trace			bool
-
 	)
 
 	flag.StringVar(&bucket,"b","",s3Client.ABUCKET)
@@ -49,17 +48,18 @@ func main() {
 
 
 	start := time.Now()
-	r := s3Client.S3Request{}
+	r := s3Client.S3GetRequest{}
 	options := &minio.GetObjectOptions{}
 	// options.SetRange(0,10)
 	r.S3BuildGetRequest(&s3Login,  bucket,  object,  options)
-	buf,err := s3Client.GetObject(r)
+
+	buf,err := r.GetObject()
 
 	if err != nil {
 		log.Fatalln("Get Key %s error %v",object,err)
 	}
 	if len(filename) > 0 {
-		files.WriteFile(filename,buf.Bytes(),0644)
+		files.WriteFile(filename,buf.Bytes(),s3Client.FILEMODE)
 	}
 	log.Printf("Total Duration:  %s  buffer size: %d ",time.Since(start),buf.Len())
 }

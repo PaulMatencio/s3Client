@@ -51,7 +51,7 @@ func main() {
 
 	s3Login := s3Client.New(s3Config,location)
 
-	minioc := s3Login.GetS3Client()  				// get minio s3Clie
+	minioc := s3Login.GetS3Client()  				// get minio client
 
 	/*
 	runtime.GOMAXPROCS(4)

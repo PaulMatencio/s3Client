@@ -18,8 +18,9 @@ func main() {
 		trace		bool
 	)
 
-	/* Delete objects with prefix
-	   emptyBucket   does not have -prefix
+	/*
+	   Delete objects id  starting  with prefix
+	   emptyBucket   does not need  -prefix
 
 	*/
 
@@ -43,22 +44,21 @@ func main() {
 	}
 	s3Login := s3Client.New(s3Config,location)
 	minioc := s3Login.GetS3Client()
+	ch := make(chan string)
 
-	objectsCh := make(chan string)
-
-	// Send object names that are needed to be removed to objectsCh
+	// List objects to be removed to
 	go func() {
-		defer close(objectsCh)
+		defer close(ch)
 		// List all objects from a bucket-name with a matching prefix.
 		for object := range minioc.ListObjects(bucket, prefix, true, nil) {
 			if object.Err != nil {
 				log.Fatalln(object.Err)
 			}
-			objectsCh <- object.Key
+			ch <- object.Key
 		}
 	}()
 
-	for rErr := range minioc.RemoveObjects(bucket, objectsCh) {
+	for rErr := range minioc.RemoveObjects(bucket, ch) {
 		fmt.Println("Error detected during deletion: ", rErr)
 	}
 

@@ -78,8 +78,7 @@ func main() {
 	}
 
 	/*
-		disable trace
-		enable trace  list http requests
+		enable tracing of http requests
 	*/
 	s3r.Trace = false
 	if s3Client.TRACE {

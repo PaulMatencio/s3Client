@@ -1,5 +1,7 @@
 package s3Client
 
+import "os"
+
 const  (
 
 	BUFFERSIZE  	int			=65536                     /* GetObject buffer Size*/
@@ -14,5 +16,7 @@ const  (
 	ADELIMITER		string		= "-d a Delimiter"
 	AMAXKEY			string		= "-m maximum keys returned"
 	TRACEON			string		= "-t trace on"
+	FILEMODE		os.FileMode = 0600
+	DIRMODE			os.FileMode = 0700
 
 )

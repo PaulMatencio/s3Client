@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/s3Client/lib"
 	"log"
+	"os"
 	"runtime"
 	"time"
 )
@@ -18,7 +19,10 @@ var (
 	ssl 		bool
 	start       time.Time
 	N           int  = 100
+	trace		bool
 )
+
+//  use  deleteObjects or deleteObjectsV1  for large bucket
 
 func main() {
 
@@ -29,6 +33,7 @@ func main() {
 
 	flag.StringVar(&bucket, "b", "", s3Client.ABUCKET)
 	flag.StringVar(&location, "s", "site1", s3Client.ALOCATION)
+	flag.BoolVar(&trace, "t", false, s3Client.TRACEON)
 	flag.Parse()
 	if len(bucket) == 0  {
 		log.Fatalln(errors.New("bucket is missing"))
@@ -52,9 +57,11 @@ func main() {
 	// Indicate to our routine to exit cleanly upon return.
 	defer close(doneCh)
 
-	// List the buckets witout  prefix
+	// List the bucket without   prefix
+	// Use deleteObjects for large bucket
 
 	prefix:=""
+
 	filenames := []string{}
 	for objInfo := range minioc.ListObjects(bucket, prefix, true, doneCh) {
 		if objInfo.Err != nil {
@@ -67,10 +74,12 @@ func main() {
 	start0 := time.Now()
 	ch := make(chan Response)
 	runtime.GOMAXPROCS(4)
-	N := len(filenames)
-	T := 1
-	/* */
-	// s3client.TraceOn(os.Stdout)
+	N,T := len(filenames),1
+
+	if trace {
+		minioc.TraceOn(os.Stdout)
+	}
+
 	for obj := 0; obj < N; obj++ {
 		start = time.Now()
 			filename := filenames[obj]

@@ -63,7 +63,8 @@ func main() {
 			}
 			i++
 			// Verify if we have printed N objects.
-			if i == N {
+			log.Println(i,N)
+			if i == N  {
 				// Indicate ListObjects go-routine to exit and stop
 				// feeding the objectInfo channel.
 				doneCh <- struct{}{}

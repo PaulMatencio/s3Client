@@ -1,21 +1,29 @@
-
 package main
 
 import (
+	"bytes"
 	"encoding/json"
-	"errors"
-	"flag"
-	"fmt"
-	"github.com/minio/minio-go"
-	"github.com/s3Client/lib"
-	"github.com/s3Client/s3Core/lib"
-	"io/ioutil"
-	"log"
-	"github.com/moses/user/goLog"
-	"os"
-	"runtime"
-	"time"
+"errors"
+"flag"
+"fmt"
+"github.com/minio/minio-go"
+"github.com/s3Client/lib"
+"github.com/s3Client/s3Core/lib"
+"io/ioutil"
+"log"
+"github.com/moses/user/goLog"
+"os"
+"runtime"
+"time"
 )
+
+type Response struct {
+	K		 string
+	Buffer  *bytes.Buffer
+	ObjInfo  *minio.ObjectInfo
+	Err      error
+}
+
 
 
 func main() {
@@ -30,12 +38,13 @@ func main() {
 		trace		bool
 		loop        bool
 	)
-
+	/*
 	type Response struct {
 		k    		string
 		ObjInfo		minio.ObjectInfo
 		Err      	error
 	}
+	*/
 
 	/* define  input parameters */
 	flag.StringVar(&bucket,"b","",s3Client.ABUCKET)
@@ -70,6 +79,7 @@ func main() {
 	 */
 	s3Login := s3Core.New(s3Config,location)
 
+
 	/*
 		Build a List request  V1
 	 */
@@ -83,8 +93,7 @@ func main() {
 	}
 
 	/*
-		disable trace
-		enable trace  list http requests
+		enable tracing  list http requests
 	*/
 
 	s3r.Trace = false
@@ -105,15 +114,21 @@ func main() {
 				goLog.Info.Printf("Bucket %s is empty",bucket)
 				return
 			}
-			// stats n objects returned by previous list Objects
+			// download  objects returned by previous list Objects
 			var nextMarker string
 			for _,v := range results.Contents {
-				//  Objects removal are started concurrently using go routine
+				//  download objetcs  concurrently using go routine
 				go 	func(b string, k string ) {
-					/* to be done */
-					opts:= minio.StatObjectOptions{}
-					objInfo, err := s3r.MinioC.StatObject(bucket, k,opts)
-					ch <- Response{k,objInfo,err}
+					/* create a request */
+					r := s3Core.S3GetRequest{}
+					/* to be done  add request  options */
+					opts:= &minio.GetObjectOptions{}
+					/* build the request */
+					r.S3BuildGetRequest(&s3Login,  bucket,  k,opts)
+					//  Get object and meta data
+					buf,objInfo,err := s3Core.GetObject(r)
+					//  return a response
+					ch <- Response{K:r.Key,Buffer:buf,ObjInfo:objInfo,Err:err}
 				}(bucket,v.Key)
 				nextMarker = v.Key
 			}
@@ -128,18 +143,18 @@ func main() {
 							m1 := s3Client.ExtractUserMeta(r.ObjInfo.Metadata)
 							if len(m1) > 0 {
 								if usermd, err := json.Marshal(m1); err == nil {
-									goLog.Info.Printf("user metadata %s of key %s/content -type %s :",r.k,usermd,r.ObjInfo.ContentType)
+									goLog.Info.Printf("Object Key %s - Size %d  - Usermd %s - Content type: %s",r.K,r.Buffer.Len(),usermd,r.ObjInfo.ContentType)
 								} else {
-									goLog.Error.Printf("Error parsing user metadata of %s - %v",r.k,err)
+									goLog.Error.Printf("Error parsing user metadata of %s - %v",r.K,err)
 								}
 							} else {
-								goLog.Warning.Printf("key %s - content type %s has no user metadata ",r.k,r.ObjInfo.ContentType)
+								goLog.Warning.Printf("Object Key %s - Size %d  - Usermd %s - Content type: %s",r.K,r.Buffer.Len(),"empty",r.ObjInfo.ContentType)
 							}
 						} else{
-							goLog.Error.Printf("Error retrieving user metadata of %s - %v",r.k,err)
+							goLog.Error.Printf("Error downloading object %s  of %s - %v",r.K,err)
 						}
-						if t == n {  // all objects are removed
-							goLog.Info.Printf("%d user metadata  have been retrieved from  bucket:%s in %s\n", n, bucket,time.Since(start))
+						if t == n {
+							goLog.Info.Printf("%d objects  have been downloaded from  bucket:%s in %s\n", n, bucket,time.Since(start))
 							goto Next  // Exit the for select loop
 						}
 
@@ -160,12 +175,12 @@ func main() {
 			if results.IsTruncated && loop {
 				s3r.SetMarker(nextMarker)
 			} else {
-				goLog.Info.Printf("Retrieve user metadata of %d objects from bucket '%s' in %v \n",N,bucket,time.Since(start0))
+				goLog.Info.Printf("Download %d objects from bucket '%s' in %v \n",N,bucket,time.Since(start0))
 				return
 			}
 
 		} else {
-			log.Fatalf("List error %v\n",err)
+			log.Fatalf("Download  error %v\n",err)
 		}
 	}
 

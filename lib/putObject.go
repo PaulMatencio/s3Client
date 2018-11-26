@@ -51,7 +51,7 @@ func (r *S3PutRequest) S3BuildPutRequest(login *S3Login, bucket string, key stri
 }
 
 
-func PutObject(r S3PutRequest) (int64, error) {
+func (r *S3PutRequest) PutObject() (int64, error) {
 
 	if r.Trace {
 		r.MinioC.TraceOn(os.Stdout)
