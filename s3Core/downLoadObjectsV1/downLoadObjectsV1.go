@@ -3,18 +3,19 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-"errors"
-"flag"
-"fmt"
-"github.com/minio/minio-go"
-"github.com/s3Client/lib"
-"github.com/s3Client/s3Core/lib"
-"io/ioutil"
-"log"
-"github.com/moses/user/goLog"
-"os"
-"runtime"
-"time"
+	"errors"
+	"flag"
+	"fmt"
+	"github.com/minio/minio-go"
+	"github.com/moses/user/goLog"
+	"github.com/s3Client/lib"
+	"github.com/s3Client/s3Core/lib"
+	"io/ioutil"
+	"log"
+	"os"
+	"runtime"
+	"strings"
+	"time"
 )
 
 type Response struct {
@@ -30,6 +31,7 @@ func main() {
 
 	var (
 		bucket 		string
+		outdir		string
 		location 	string
 		prefix		string
 		delimiter   string
@@ -48,6 +50,7 @@ func main() {
 
 	/* define  input parameters */
 	flag.StringVar(&bucket,"b","",s3Client.ABUCKET)
+	flag.StringVar(&outdir,"o","","-o output directory")
 	flag.StringVar(&location,"s","site1",s3Client.ALOCATION)
 	flag.StringVar(&prefix,"p","",s3Client.APREFIX)
 	flag.StringVar(&marker,"marker","","-marker aString")
@@ -60,7 +63,14 @@ func main() {
 
 	if len(bucket) == 0  {
 		flag.Usage()
-		log.Fatalln(errors.New("bucket name cannot be empty"))
+		log.Fatalln(errors.New("*** bucket name cannot be empty"))
+	}
+	if len(outdir) == 0 {
+		log.Fatalln(errors.New("*** output directory is missing"))
+	} else {
+		if _,err:= os.Stat(outdir); os.IsNotExist(err) {
+			os.MkdirAll(outdir,s3Client.DIRMODE)
+		}
 	}
 
 	/* get config  */
@@ -125,8 +135,10 @@ func main() {
 					opts:= &minio.GetObjectOptions{}
 					/* build the request */
 					r.S3BuildGetRequest(&s3Login,  bucket,  k,opts)
+
 					//  Get object and meta data
 					buf,objInfo,err := s3Core.GetObject(r)
+
 					//  return a response
 					ch <- Response{K:r.Key,Buffer:buf,ObjInfo:objInfo,Err:err}
 				}(bucket,v.Key)
@@ -140,15 +152,24 @@ func main() {
 				case  r:= <-ch:
 					{   t++
 						if r.Err == nil {
+
+							pathname := outdir + string(os.PathSeparator) + strings.Replace(r.K,string(os.PathSeparator),"_",-1)
+							if err:= ioutil.WriteFile(pathname,r.Buffer.Bytes(),s3Client.FILEMODE); err == nil {
+								goLog.Trace.Printf("Key %s is downloaded %s",r.K,pathname)
+							} else {
+								goLog.Error.Printf("Error %v downloading %s",err,r.K)
+							}
+
+							//  extract meta data
 							m1 := s3Client.ExtractUserMeta(r.ObjInfo.Metadata)
 							if len(m1) > 0 {
 								if usermd, err := json.Marshal(m1); err == nil {
-									goLog.Info.Printf("Object Key %s - Size %d  - Usermd %s - Content type: %s",r.K,r.Buffer.Len(),usermd,r.ObjInfo.ContentType)
+									goLog.Trace.Printf("Object Key %s - Size %d-%d  - Usermd %s - Content type: %s",r.K,r.Buffer.Len(),r.ObjInfo.Size,usermd,r.ObjInfo.ContentType)
 								} else {
 									goLog.Error.Printf("Error parsing user metadata of %s - %v",r.K,err)
 								}
 							} else {
-								goLog.Warning.Printf("Object Key %s - Size %d  - Usermd %s - Content type: %s",r.K,r.Buffer.Len(),"empty",r.ObjInfo.ContentType)
+								goLog.Warning.Printf("Object Key %s - Size %d-%d  - Usermd %s - Content type: %s",r.K,r.Buffer.Len(),r.ObjInfo.Size,"empty",r.ObjInfo.ContentType)
 							}
 						} else{
 							goLog.Error.Printf("Error downloading object %s  of %s - %v",r.K,err)

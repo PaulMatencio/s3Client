@@ -108,7 +108,7 @@ func main() {
 			// todo add getObject Options
 			options := &minio.GetObjectOptions{}
 
-			r.S3BuildFGetRequest(&s3Login,  bucket, key, filePath, options,overwrite)
+			r.S3BuildFGetRequest(&s3Login,  bucket, key, filePath, options, overwrite)
 			err := r.FGetObject()
 			ch <- Response{key,filePath,err}
 		}(key,filePath)

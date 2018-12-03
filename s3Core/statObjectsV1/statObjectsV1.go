@@ -128,12 +128,12 @@ func main() {
 							m1 := s3Client.ExtractUserMeta(r.ObjInfo.Metadata)
 							if len(m1) > 0 {
 								if usermd, err := json.Marshal(m1); err == nil {
-									goLog.Info.Printf("user metadata %s of key %s/content -type %s :",r.k,usermd,r.ObjInfo.ContentType)
+									goLog.Info.Printf("key %s user - size %d - usermeta %s - content -type %s :",r.k,r.ObjInfo.Size, usermd,r.ObjInfo.ContentType)
 								} else {
 									goLog.Error.Printf("Error parsing user metadata of %s - %v",r.k,err)
 								}
 							} else {
-								goLog.Warning.Printf("key %s - content type %s has no user metadata ",r.k,r.ObjInfo.ContentType)
+								goLog.Warning.Printf("key %s - size %d - content type %s has no user metadata ",r.k,r.ObjInfo.Size,r.ObjInfo.ContentType)
 							}
 						} else{
 							goLog.Error.Printf("Error retrieving user metadata of %s - %v",r.k,err)
