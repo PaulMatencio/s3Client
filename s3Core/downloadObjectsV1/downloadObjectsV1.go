@@ -112,7 +112,7 @@ func main() {
 	}
 
 	// s3r.S3BuildListRequest(&s3Login, bucket, prefix, false,delimiter, after, next,limit)
-	runtime.GOMAXPROCS(4)
+	runtime.GOMAXPROCS(8)
 	ch := make(chan Response)
 	var N, start0 = 0,time.Now()
 
@@ -121,7 +121,7 @@ func main() {
 		if results,err := s3Core.ListObjectsV1(s3r) ; err == nil {
 			t,start,n := 0,time.Now(),len(results.Contents)
 			if n==0 {
-				goLog.Info.Printf("Bucket %s is empty",bucket)
+				goLog.Info.Printf("List bucket  %s  return %d documents",bucket,n)
 				return
 			}
 			// download  objects returned by previous list Objects

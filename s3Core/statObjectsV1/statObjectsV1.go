@@ -2,16 +2,16 @@
 package main
 
 import (
-	"encoding/json"
+	"encoding/base64"
 	"errors"
 	"flag"
 	"fmt"
 	"github.com/minio/minio-go"
+	"github.com/moses/user/goLog"
 	"github.com/s3Client/lib"
 	"github.com/s3Client/s3Core/lib"
 	"io/ioutil"
 	"log"
-	"github.com/moses/user/goLog"
 	"os"
 	"runtime"
 	"time"
@@ -29,6 +29,7 @@ func main() {
 		limit 		int
 		trace		bool
 		loop        bool
+		decode 		bool
 	)
 
 	type Response struct {
@@ -41,12 +42,12 @@ func main() {
 	flag.StringVar(&bucket,"b","",s3Client.ABUCKET)
 	flag.StringVar(&location,"s","site1",s3Client.ALOCATION)
 	flag.StringVar(&prefix,"p","",s3Client.APREFIX)
-	flag.StringVar(&marker,"marker","","-marker aString")
+	flag.StringVar(&marker,"M","","-M  marker")
 	flag.StringVar(&delimiter,"d","",s3Client.ADELIMITER)
 	flag.IntVar(&limit,"m",100,s3Client.AMAXKEY)
 	flag.BoolVar(&loop,"l",false,"-l loop over to N")
 	flag.BoolVar(&trace,"t",false,s3Client.TRACEON)
-
+	flag.BoolVar(&decode,"D",false,"-D to decode user metadata")
 	flag.Parse()
 
 	if len(bucket) == 0  {
@@ -126,11 +127,19 @@ func main() {
 					{   t++
 						if r.Err == nil {
 							m1 := s3Client.ExtractUserMeta(r.ObjInfo.Metadata)
+
 							if len(m1) > 0 {
-								if usermd, err := json.Marshal(m1); err == nil {
-									goLog.Info.Printf("key %s user - size %d - usermeta %s - content -type %s :",r.k,r.ObjInfo.Size, usermd,r.ObjInfo.ContentType)
+
+								/* if usermd, err := json.Marshal(m1); err == nil { */
+								if usermd,ok := m1["Usermd"];ok {
+									if !decode {
+										goLog.Info.Printf("key %s user - size %d - usermeta %s - content -type %s :", r.k, r.ObjInfo.Size, usermd, r.ObjInfo.ContentType)
+									} else {
+										u,err := base64.StdEncoding.DecodeString(usermd)
+										goLog.Info.Printf("key %s user - size %d - usermeta %s - content-type  %s  - Error %v ", r.k, r.ObjInfo.Size, u, r.ObjInfo.ContentType,err)
+									}
 								} else {
-									goLog.Error.Printf("Error parsing user metadata of %s - %v",r.k,err)
+									goLog.Warning.Printf("key %s - size %d - content type %s has no user metadata ",r.k,r.ObjInfo.Size,r.ObjInfo.ContentType)
 								}
 							} else {
 								goLog.Warning.Printf("key %s - size %d - content type %s has no user metadata ",r.k,r.ObjInfo.Size,r.ObjInfo.ContentType)

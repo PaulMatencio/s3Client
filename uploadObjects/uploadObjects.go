@@ -88,6 +88,7 @@ func main() {
 	if len(ftype) > 0  {
 		prefix += ftype + "/"
 	}
+
 	log.Printf("Files will be upload with a prefix of %s\n",prefix)
 
 	for _, f := range files {
