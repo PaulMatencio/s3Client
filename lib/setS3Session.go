@@ -80,8 +80,15 @@ func SetS3Config(s3Config Config,location string) (S3) {
 }
 
 /*
-
+	signature V4
  */
+func New(s3Config Config,location string)  (S3Login){
+	s:=  SetS3Config(s3Config,location)
+	return  S3Login {
+		S3: &s,
+		MinioC : S3Connect(s),
+	}
+}
 
 func S3Connect(s3 S3) (*minio.Client) {
 	minioc, err := minio.New(s3.Endpoint, s3.AccessKeyID, s3.SecretKey,s3.SSL)
@@ -91,16 +98,19 @@ func S3Connect(s3 S3) (*minio.Client) {
 	return minioc
 }
 
-/*
-
- */
-func New(s3Config Config,location string)  (S3Login){
-
+// signature V2
+func NewV2(s3Config Config,location string)  (S3Login){
 	s:=  SetS3Config(s3Config,location)
 	return  S3Login {
 		S3: &s,
-		MinioC : S3Connect(s),
+		MinioC : S3ConnectV2(s),
 	}
 }
 
-
+func S3ConnectV2(s3 S3) (*minio.Client) {
+	minioc, err := minio.NewV2(s3.Endpoint, s3.AccessKeyID, s3.SecretKey,s3.SSL)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	return minioc
+}

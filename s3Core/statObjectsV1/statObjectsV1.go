@@ -26,6 +26,8 @@ func main() {
 		prefix		string
 		delimiter   string
 		marker      string
+		signature   string
+		s3Login     s3Core.S3Login
 		limit 		int
 		trace		bool
 		loop        bool
@@ -36,10 +38,12 @@ func main() {
 		k    		string
 		ObjInfo		minio.ObjectInfo
 		Err      	error
+
 	}
 
 	/* define  input parameters */
 	flag.StringVar(&bucket,"b","",s3Client.ABUCKET)
+	flag.StringVar(&signature,"S","V4","S3 signature")
 	flag.StringVar(&location,"s","site1",s3Client.ALOCATION)
 	flag.StringVar(&prefix,"p","",s3Client.APREFIX)
 	flag.StringVar(&marker,"M","","-M  marker")
@@ -69,7 +73,11 @@ func main() {
 	/*
 		Create an S3 session
 	 */
-	s3Login := s3Core.New(s3Config,location)
+	if signature == "V2" {
+		s3Login = s3Core.New(s3Config, location)
+	} else {
+		s3Login = s3Core.New(s3Config, location)
+	}
 
 	/*
 		Build a List request  V1
@@ -116,6 +124,7 @@ func main() {
 					objInfo, err := s3r.MinioC.StatObject(bucket, k,opts)
 					ch <- Response{k,objInfo,err}
 				}(bucket,v.Key)
+
 				nextMarker = v.Key
 			}
 

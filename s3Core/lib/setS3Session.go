@@ -53,3 +53,11 @@ func S3Connect(s3 s3Client.S3) (*minio.Core) {
 	}
 	return minioc
 }
+
+func S3ConnectV2(s3 s3Client.S3) (*minio.Client) {
+	s3Client, err := minio.NewV2(s3.Endpoint, s3.AccessKeyID, s3.SecretKey,s3.SSL)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	return s3Client
+}
