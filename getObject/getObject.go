@@ -18,6 +18,8 @@ func main() {
 		location 		string              /* S3 location */
 		object 			string              /* Object name */
 		filename        string              /* file name  */
+		signature       string
+		s3Login         s3Client.S3Login
 		trace			bool
 	)
 
@@ -25,6 +27,7 @@ func main() {
 	flag.StringVar(&location,"s","site1",s3Client.ALOCATION)
 	flag.StringVar(&object,"o","",s3Client.AOBJECT)
 	flag.BoolVar(&trace,"t",false,s3Client.TRACEON)
+	flag.StringVar(&signature,"S","V4","-S signature")
 	flag.StringVar(&filename,"f","",s3Client.AFILE)
 
 	flag.Parse()
@@ -39,7 +42,13 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	s3Login := s3Client.New(s3Config,location)
+	if signature == "V2" {
+		s3Login = s3Client.NewV2(s3Config, location)
+	} else {
+		s3Login = s3Client.New(s3Config, location)
+	}
+
+
 	minioc := s3Login.GetS3Client()                            // get minio s3Client after the login  to  set transport option
 	tr := &http.Transport{
 		DisableCompression: true,

@@ -28,6 +28,7 @@ func main() {
 		marker      string
 		signature   string
 		s3Login     s3Core.S3Login
+
 		limit 		int
 		trace		bool
 		loop        bool
@@ -73,8 +74,10 @@ func main() {
 	/*
 		Create an S3 session
 	 */
+
 	if signature == "V2" {
-		s3Login = s3Core.New(s3Config, location)
+		s3Login = s3Core.New(s3Config, location)    // not yet implemented
+
 	} else {
 		s3Login = s3Core.New(s3Config, location)
 	}
@@ -82,6 +85,7 @@ func main() {
 	/*
 		Build a List request  V1
 	 */
+
 	s3r := s3Core.S3ListRequest{
 		MinioC: s3Login.MinioC,
 		Bucket: bucket,

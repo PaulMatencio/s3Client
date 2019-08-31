@@ -23,12 +23,11 @@ func main() {
 		trace		bool
 		s3Login     s3Client.S3Login
 	)
-
+	flag.StringVar(&signature,"S","V4","-S signature")
 	flag.StringVar(&bucket,"b","","-b bucketName")
 	flag.StringVar(&location,"s","site1","-s locationName")
 	flag.StringVar(&object,"o","","-o objectName")
-	flag.StringVar(&signature,"S","V4","-S signature")
-	flag.BoolVar(&trace,"trace",false,"-trace")
+	flag.BoolVar(&trace,"t",false,"-trace")
 	flag.Parse()
 	if len(bucket) == 0  || len(object) == 0 {
 		log.Println("bucket name  or object name cannot be empty")

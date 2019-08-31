@@ -15,6 +15,7 @@ import (
 type S3Login struct {
 	S3      *s3Client.S3
 	MinioC  *minio.Core
+	S3Client *minio.Client
 }
 
 /*
@@ -28,6 +29,13 @@ func New(s3Config s3Client.Config,location string)  (S3Login){
 	}
 }
 
+func NewV2(s3Config s3Client.Config,location string)  (S3Login){
+	s:=  s3Client.SetS3Config(s3Config,location)
+	return  S3Login {
+		S3: &s,
+		S3Client : S3ConnectV2(s),
+	}
+}
 /*
 	return an s3Core.S3Login session
  */
